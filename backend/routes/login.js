@@ -950,29 +950,29 @@ router.post(
           user.email
         );
 
-      } catch (emailError) {
-        console.error(
-          "❌ Password reset email error:",
-          emailError
-        );
+} catch (emailError) {
+  console.error("=================================");
+  console.error("❌ PASSWORD RESET OTP EMAIL ERROR");
+  console.error("Message:", emailError.message);
+  console.error("Name:", emailError.name);
+  console.error("Code:", emailError.code);
+  console.error("Command:", emailError.command);
+  console.error("Response:", emailError.response);
+  console.error("Response Code:", emailError.responseCode);
+  console.error("Stack:", emailError.stack);
+  console.error("=================================");
 
-        /*
-        |--------------------------------------------------------------------------
-        | Remove OTP if email failed
-        |--------------------------------------------------------------------------
-        */
+  // Remove OTP because email was not sent
+  await PasswordResetOTP.deleteMany({
+    userId: user._id,
+  });
 
-        await PasswordResetOTP.deleteMany({
-          userId: user._id,
-        });
-
-        return res.status(500).json({
-          success: false,
-          message:
-            "Unable to send password reset OTP. Please try again later.",
-        });
-      }
-
+  return res.status(500).json({
+    success: false,
+    message:
+      "Unable to send password reset OTP. Please try again later.",
+  });
+}
       /*
       |--------------------------------------------------------------------------
       | Success
@@ -989,18 +989,20 @@ router.post(
       });
 
     } catch (error) {
-      console.error(
-        "❌ Forgot password error:",
-        error
-      );
+  console.error("=================================");
+  console.error("❌ FORGOT PASSWORD OTP ERROR");
+  console.error("Message:", error.message);
+  console.error("Name:", error.name);
+  console.error("Code:", error.code);
+  console.error("Stack:", error.stack);
+  console.error("=================================");
 
-      return res.status(500).json({
-        success: false,
-
-        message:
-          "Server error. Please try again later.",
-      });
-    }
+  return res.status(500).json({
+    success: false,
+    message:
+      "Server error. Please try again later.",
+  });
+}
   }
 );
 
