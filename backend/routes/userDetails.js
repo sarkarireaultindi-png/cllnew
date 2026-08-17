@@ -1,10 +1,17 @@
 import express from "express";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
+
 import User from "../models/UserDetails.js";
 
 const router = express.Router();
+
+// ======================================================
+// RESEND
+// ======================================================
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ======================================================
 // Generate Unique Registration Number
@@ -43,32 +50,6 @@ const generatePassword = () => {
 
   return password;
 };
-
-// ======================================================
-// Gmail Transporter
-// ======================================================
-
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
-  },
-});
-
-// ======================================================
-// Verify Gmail SMTP
-// ======================================================
-
-transporter.verify((error) => {
-  if (error) {
-    console.error("❌ Gmail SMTP Error:");
-    console.error(error.message);
-  } else {
-    console.log("✅ Gmail SMTP server is ready");
-  }
-});
 
 // ======================================================
 // Register User
@@ -233,8 +214,6 @@ router.post("/register", async (req, res) => {
       registrationNumber
     );
 
-    // Don't log the password in production.
-
     // ==================================================
     // Hash Password
     // ==================================================
@@ -271,202 +250,242 @@ router.post("/register", async (req, res) => {
     );
 
     // ==================================================
-    // Send Registration Email
+    // Send Registration Email Using Resend
     // ==================================================
 
     try {
-      const mailInfo =
-        await transporter.sendMail({
-          from: `"CCL Portal" <${process.env.EMAIL_USER}>`,
+      const { data, error } =
+        await resend.emails.send({
+          from:
+            "CCL Portal <onboarding@resend.dev>",
 
-          to: cleanEmail,
+          to: [cleanEmail],
 
           subject:
             "Registration Successful - Login Details",
 
           html: `
-            <!DOCTYPE html>
+<!DOCTYPE html>
 
-            <html>
-              <head>
-                <meta charset="UTF-8" />
-                <title>
-                  Registration Successful
-                </title>
-              </head>
+<html>
+  <head>
+    <meta charset="UTF-8" />
 
-              <body
-                style="
-                  margin:0;
-                  padding:20px;
-                  background:#f3f4f6;
-                  font-family:Arial,sans-serif;
-                "
-              >
+    <title>
+      Registration Successful
+    </title>
+  </head>
 
-                <div
-                  style="
-                    max-width:600px;
-                    margin:auto;
-                    background:white;
-                    border-radius:10px;
-                    overflow:hidden;
-                    border:1px solid #ddd;
-                  "
-                >
+  <body
+    style="
+      margin:0;
+      padding:20px;
+      background:#f3f4f6;
+      font-family:Arial,sans-serif;
+    "
+  >
 
-                  <!-- Header -->
+    <div
+      style="
+        max-width:600px;
+        margin:auto;
+        background:white;
+        border-radius:10px;
+        overflow:hidden;
+        border:1px solid #ddd;
+      "
+    >
 
-                  <div
-                    style="
-                      background:#ab183d;
-                      color:white;
-                      padding:22px;
-                    "
-                  >
+      <!-- Header -->
 
-                    <h2
-                      style="
-                        margin:0;
-                        font-size:22px;
-                      "
-                    >
-                      Registration Successful
-                    </h2>
+      <div
+        style="
+          background:#ab183d;
+          color:white;
+          padding:22px;
+        "
+      >
 
-                    <p
-                      style="
-                        margin:6px 0 0;
-                        opacity:.85;
-                      "
-                    >
-                      Application Portal
-                    </p>
+        <h2
+          style="
+            margin:0;
+            font-size:22px;
+          "
+        >
+          Registration Successful
+        </h2>
 
-                  </div>
+        <p
+          style="
+            margin:6px 0 0;
+            opacity:.85;
+          "
+        >
+          Application Portal
+        </p>
 
-
-                  <!-- Content -->
-
-                  <div
-                    style="
-                      padding:25px;
-                      color:#333;
-                    "
-                  >
-
-                    <p>
-                      Dear
-                      <strong>
-                        ${cleanName}
-                      </strong>,
-                    </p>
-
-                    <p>
-                      Your registration has been
-                      successfully completed.
-                    </p>
+      </div>
 
 
-                    <!-- Credentials -->
+      <!-- Content -->
 
-                    <div
-                      style="
-                        background:#f5f5f5;
-                        border:1px solid #ddd;
-                        border-radius:8px;
-                        padding:20px;
-                        margin:20px 0;
-                      "
-                    >
+      <div
+        style="
+          padding:25px;
+          color:#333;
+        "
+      >
 
-                      <p
-                        style="
-                          margin:0 0 12px;
-                        "
-                      >
-                        <strong>
-                          Registration Number:
-                        </strong>
-                        <br />
+        <p>
+          Dear
+          <strong>
+            ${cleanName}
+          </strong>,
+        </p>
 
-                        <span
-                          style="
-                            font-size:18px;
-                            color:#ab183d;
-                            font-weight:bold;
-                          "
-                        >
-                          ${registrationNumber}
-                        </span>
-                      </p>
+        <p>
+          Your registration has been
+          successfully completed.
+        </p>
 
 
-                      <p
-                        style="
-                          margin:0;
-                        "
-                      >
-                        <strong>
-                           Password:
-                        </strong>
-                        <br />
+        <!-- Credentials -->
 
-                        <span
-                          style="
-                            font-size:18px;
-                            color:#ab183d;
-                            font-weight:bold;
-                            letter-spacing:2px;
-                          "
-                        >
-                          ${temporaryPassword}
-                        </span>
-                      </p>
+        <div
+          style="
+            background:#f5f5f5;
+            border:1px solid #ddd;
+            border-radius:8px;
+            padding:20px;
+            margin:20px 0;
+          "
+        >
 
-                    </div>
+          <p
+            style="
+              margin:0 0 12px;
+            "
+          >
+
+            <strong>
+              Registration Number:
+            </strong>
+
+            <br />
+
+            <span
+              style="
+                font-size:18px;
+                color:#ab183d;
+                font-weight:bold;
+              "
+            >
+              ${registrationNumber}
+            </span>
+
+          </p>
 
 
-                    <p>
-                      Please use your registration
-                      number and password
-                      to log in.
-                    </p>
+          <p
+            style="
+              margin:0;
+            "
+          >
 
-                    <p
-                      style="
-                        color:#666;
-                        font-size:14px;
-                      "
-                    >
-                      Please keep your login
-                      credentials secure.
-                    </p>
+            <strong>
+              Password:
+            </strong>
 
-                    <p>
-                      Regards,<br />
-                      <strong>
-                        Central Coalfields Limited <br /> 
-                        Government of india
-                      </strong>
-                    </p>
+            <br />
 
-                  </div>
+            <span
+              style="
+                font-size:18px;
+                color:#ab183d;
+                font-weight:bold;
+                letter-spacing:2px;
+              "
+            >
+              ${temporaryPassword}
+            </span>
 
-                </div>
+          </p>
 
-              </body>
-            </html>
+        </div>
+
+
+        <p>
+          Please use your registration
+          number and password
+          to log in.
+        </p>
+
+
+        <p
+          style="
+            color:#666;
+            font-size:14px;
+          "
+        >
+          Please keep your login
+          credentials secure.
+        </p>
+
+
+        <p>
+          Regards,<br />
+
+          <strong>
+            Central Coalfields Limited
+            <br />
+            Government of India
+          </strong>
+        </p>
+
+      </div>
+
+    </div>
+
+  </body>
+</html>
           `,
         });
 
+      // --------------------------------------------------
+      // Resend Error
+      // --------------------------------------------------
+
+      if (error) {
+        console.error(
+          "❌ Resend email error:"
+        );
+
+        console.error(error);
+
+        return res.status(201).json({
+          success: true,
+
+          emailSent: false,
+
+          message:
+            "Registration successful, but the login email could not be sent. Please contact support.",
+
+          registrationNumber:
+            user.registrationNumber,
+        });
+      }
+
+      // --------------------------------------------------
+      // Email Success
+      // --------------------------------------------------
+
       console.log(
-        "✅ Email sent successfully"
+        "✅ Registration email sent successfully"
       );
 
       console.log(
-        "Message ID:",
-        mailInfo.messageId
+        "Resend Email ID:",
+        data?.id
       );
 
       // ==================================================
@@ -488,11 +507,11 @@ router.post("/register", async (req, res) => {
     } catch (emailError) {
 
       console.error(
-        "❌ Email sending error:"
+        "❌ Resend email sending error:"
       );
 
       console.error(
-        emailError.message
+        emailError
       );
 
       // User has already been saved.

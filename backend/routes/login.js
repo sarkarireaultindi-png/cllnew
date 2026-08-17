@@ -2,13 +2,25 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import nodemailer from "nodemailer";
 import rateLimit from "express-rate-limit";
+import { Resend } from "resend";
 
 import User from "../models/UserDetails.js";
 import LoginOTP from "../models/LoginOTP.js";
 import PasswordResetOTP from "../models/PasswordResetOTP.js";
+
 const router = express.Router();
+
+/*
+|--------------------------------------------------------------------------
+| RESEND
+|--------------------------------------------------------------------------
+*/
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+const EMAIL_FROM =
+  process.env.EMAIL_FROM || "Application Portal <onboarding@resend.dev>";
 
 /*
 |--------------------------------------------------------------------------
@@ -19,6 +31,7 @@ const router = express.Router();
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
+
   standardHeaders: true,
   legacyHeaders: false,
 
@@ -42,7 +55,7 @@ const captchaStore = new Map();
 
 /*
 |--------------------------------------------------------------------------
-| Generate CAPTCHA
+| GENERATE CAPTCHA
 |--------------------------------------------------------------------------
 */
 
@@ -54,7 +67,10 @@ const generateCaptcha = () => {
 
   for (let i = 0; i < 6; i++) {
     code += characters.charAt(
-      crypto.randomInt(0, characters.length)
+      crypto.randomInt(
+        0,
+        characters.length
+      )
     );
   }
 
@@ -63,7 +79,7 @@ const generateCaptcha = () => {
 
 /*
 |--------------------------------------------------------------------------
-| Create CAPTCHA Token
+| CREATE CAPTCHA TOKEN
 |--------------------------------------------------------------------------
 */
 
@@ -72,15 +88,17 @@ const createCaptchaToken = (
   code,
   expiresAt
 ) => {
-  const data = `${id}.${code}.${expiresAt}`;
+  const data =
+    `${id}.${code}.${expiresAt}`;
 
-  const signature = crypto
-    .createHmac(
-      "sha256",
-      CAPTCHA_SECRET
-    )
-    .update(data)
-    .digest("hex");
+  const signature =
+    crypto
+      .createHmac(
+        "sha256",
+        CAPTCHA_SECRET
+      )
+      .update(data)
+      .digest("hex");
 
   return `${id}.${expiresAt}.${signature}`;
 };
@@ -94,50 +112,59 @@ const createCaptchaToken = (
 |
 */
 
-router.get("/captcha", (req, res) => {
-  try {
-    const id = crypto.randomUUID();
+router.get(
+  "/captcha",
+  (req, res) => {
+    try {
+      const id =
+        crypto.randomUUID();
 
-    const code = generateCaptcha();
+      const code =
+        generateCaptcha();
 
-    const expiresAt =
-      Date.now() + 5 * 60 * 1000;
+      const expiresAt =
+        Date.now() +
+        5 * 60 * 1000;
 
-    captchaStore.set(id, {
-      code,
-      expiresAt,
-    });
-
-    const captchaToken =
-      createCaptchaToken(
+      captchaStore.set(
         id,
-        code,
-        expiresAt
+        {
+          code,
+          expiresAt,
+        }
       );
 
-    return res.status(200).json({
-      success: true,
+      const captchaToken =
+        createCaptchaToken(
+          id,
+          code,
+          expiresAt
+        );
 
-      // Used by frontend to display CAPTCHA
-      captchaCode: code,
+      return res.status(200).json({
+        success: true,
 
-      // Used by frontend when submitting login
-      captchaToken,
-    });
+        captchaCode:
+          code,
 
-  } catch (error) {
-    console.error(
-      "CAPTCHA generation error:",
-      error
-    );
+        captchaToken:
+          captchaToken,
+      });
 
-    return res.status(500).json({
-      success: false,
-      message:
-        "Unable to generate CAPTCHA.",
-    });
+    } catch (error) {
+      console.error(
+        "CAPTCHA generation error:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Unable to generate CAPTCHA.",
+      });
+    }
   }
-});
+);
 
 /*
 |--------------------------------------------------------------------------
@@ -178,9 +205,9 @@ const verifyCaptcha = (
     }
 
     /*
-    |----------------------------------------------------------------------
-    | Expired
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
+    | EXPIRY
+    |--------------------------------------------------------------------------
     */
 
     if (
@@ -193,9 +220,9 @@ const verifyCaptcha = (
     }
 
     /*
-    |----------------------------------------------------------------------
-    | Create expected signature
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
+    | EXPECTED SIGNATURE
+    |--------------------------------------------------------------------------
     */
 
     const expectedToken =
@@ -209,9 +236,9 @@ const verifyCaptcha = (
       expectedToken.split(".")[2];
 
     /*
-    |----------------------------------------------------------------------
-    | Prevent timing attack
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
+    | TIMING SAFE COMPARISON
+    |--------------------------------------------------------------------------
     */
 
     if (
@@ -232,9 +259,9 @@ const verifyCaptcha = (
     }
 
     /*
-    |----------------------------------------------------------------------
-    | Compare CAPTCHA
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
+    | CAPTCHA VALUE
+    |--------------------------------------------------------------------------
     */
 
     if (
@@ -247,9 +274,9 @@ const verifyCaptcha = (
     }
 
     /*
-    |----------------------------------------------------------------------
-    | CAPTCHA can only be used once
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
+    | ONE TIME USE
+    |--------------------------------------------------------------------------
     */
 
     captchaStore.delete(id);
@@ -268,45 +295,62 @@ const verifyCaptcha = (
 
 /*
 |--------------------------------------------------------------------------
-| EMAIL TRANSPORTER
-|--------------------------------------------------------------------------
-*/
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
-  requireTLS: true,
-
-  // Force IPv4 on Render
-  family: 4,
-
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
-  },
-
-  connectionTimeout: 30000,
-  greetingTimeout: 30000,
-  socketTimeout: 30000,
-});
-
-/*
-|--------------------------------------------------------------------------
-| Verify SMTP
-|--------------------------------------------------------------------------
-*/
-
-
-/*
-|--------------------------------------------------------------------------
-| Generate OTP
+| GENERATE OTP
 |--------------------------------------------------------------------------
 */
 
 const generateOTP = () => {
   return crypto
-    .randomInt(100000, 1000000)
+    .randomInt(
+      100000,
+      1000000
+    )
     .toString();
+};
+
+/*
+|--------------------------------------------------------------------------
+| SEND EMAIL USING RESEND
+|--------------------------------------------------------------------------
+*/
+
+const sendEmail = async ({
+  to,
+  subject,
+  html,
+}) => {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error(
+      "RESEND_API_KEY is missing."
+    );
+  }
+
+  const { data, error } =
+    await resend.emails.send({
+      from: EMAIL_FROM,
+      to: [to],
+      subject,
+      html,
+    });
+
+  if (error) {
+    console.error(
+      "Resend API error:",
+      error
+    );
+
+    throw new Error(
+      error.message ||
+      "Resend email failed."
+    );
+  }
+
+  console.log(
+    "✅ Email sent through Resend:",
+    data?.id
+  );
+
+  return data;
 };
 
 /*
@@ -345,7 +389,7 @@ router.post(
 
       /*
       |--------------------------------------------------------------------------
-      | Validate input
+      | VALIDATE INPUT
       |--------------------------------------------------------------------------
       */
 
@@ -357,7 +401,6 @@ router.post(
       ) {
         return res.status(400).json({
           success: false,
-
           message:
             "Registration number/mobile number, password and CAPTCHA are required.",
         });
@@ -365,7 +408,7 @@ router.post(
 
       /*
       |--------------------------------------------------------------------------
-      | Verify CAPTCHA
+      | VERIFY CAPTCHA
       |--------------------------------------------------------------------------
       */
 
@@ -378,7 +421,6 @@ router.post(
       if (!captchaValid) {
         return res.status(401).json({
           success: false,
-
           message:
             "Invalid or expired CAPTCHA.",
         });
@@ -386,7 +428,7 @@ router.post(
 
       /*
       |--------------------------------------------------------------------------
-      | Clean User ID
+      | CLEAN USER ID
       |--------------------------------------------------------------------------
       */
 
@@ -395,15 +437,8 @@ router.post(
 
       /*
       |--------------------------------------------------------------------------
-      | Find User
+      | FIND USER
       |--------------------------------------------------------------------------
-      |
-      | Login can use:
-      |
-      | Registration Number
-      | OR
-      | Mobile Number
-      |
       */
 
       const user =
@@ -413,7 +448,6 @@ router.post(
               registrationNumber:
                 cleanUserId.toUpperCase(),
             },
-
             {
               mobile:
                 cleanUserId,
@@ -421,16 +455,9 @@ router.post(
           ],
         });
 
-      /*
-      |--------------------------------------------------------------------------
-      | Invalid User
-      |--------------------------------------------------------------------------
-      */
-
       if (!user) {
         return res.status(401).json({
           success: false,
-
           message:
             "Invalid login credentials.",
         });
@@ -438,7 +465,7 @@ router.post(
 
       /*
       |--------------------------------------------------------------------------
-      | Password Verification
+      | PASSWORD
       |--------------------------------------------------------------------------
       */
 
@@ -451,7 +478,6 @@ router.post(
       if (!passwordValid) {
         return res.status(401).json({
           success: false,
-
           message:
             "Invalid login credentials.",
         });
@@ -459,17 +485,18 @@ router.post(
 
       /*
       |--------------------------------------------------------------------------
-      | Delete Previous OTPs
+      | DELETE OLD LOGIN OTPS
       |--------------------------------------------------------------------------
       */
 
       await LoginOTP.deleteMany({
-        userId: user._id,
+        userId:
+          user._id,
       });
 
       /*
       |--------------------------------------------------------------------------
-      | Generate OTP
+      | GENERATE OTP
       |--------------------------------------------------------------------------
       */
 
@@ -478,7 +505,7 @@ router.post(
 
       /*
       |--------------------------------------------------------------------------
-      | Hash OTP
+      | HASH OTP
       |--------------------------------------------------------------------------
       */
 
@@ -490,19 +517,19 @@ router.post(
 
       /*
       |--------------------------------------------------------------------------
-      | OTP Expiry
+      | EXPIRY
       |--------------------------------------------------------------------------
       */
 
       const expiresAt =
         new Date(
           Date.now() +
-            5 * 60 * 1000
+          5 * 60 * 1000
         );
 
       /*
       |--------------------------------------------------------------------------
-      | Save OTP
+      | SAVE OTP
       |--------------------------------------------------------------------------
       */
 
@@ -526,17 +553,13 @@ router.post(
 
       /*
       |--------------------------------------------------------------------------
-      | Send OTP Email
+      | LOGIN OTP EMAIL
       |--------------------------------------------------------------------------
       */
 
       try {
-        await transporter.sendMail({
-          from:
-            `"CCL Portal" <${process.env.EMAIL_USER}>`,
-
-          to:
-            user.email,
+        await sendEmail({
+          to: user.email,
 
           subject:
             "Login Verification OTP",
@@ -549,6 +572,7 @@ router.post(
               border:1px solid #ddd;
               border-radius:10px;
               overflow:hidden;
+              background:#ffffff;
             ">
 
               <div style="
@@ -572,7 +596,7 @@ router.post(
                 <p>
                   Dear
                   <strong>
-                    ${user.name}
+                    ${user.name || "User"}
                   </strong>,
                 </p>
 
@@ -593,10 +617,9 @@ router.post(
                   font-size:30px;
                   font-weight:bold;
                   letter-spacing:8px;
+                  color:#ab183d;
                 ">
-
                   ${otp}
-
                 </div>
 
                 <p>
@@ -621,8 +644,7 @@ router.post(
 
                 <p>
                   Regards,<br/>
-                   Central Coalfields Limited <br /> 
-                        Government of india
+                  Application Portal
                 </p>
 
               </div>
@@ -639,15 +661,9 @@ router.post(
       } catch (emailError) {
 
         console.error(
-          "❌ OTP email error:",
+          "❌ LOGIN OTP EMAIL ERROR:",
           emailError
         );
-
-        /*
-        |----------------------------------------------------------------------
-        | Remove OTP if email failed
-        |----------------------------------------------------------------------
-        */
 
         await LoginOTP.deleteMany({
           userId:
@@ -656,7 +672,6 @@ router.post(
 
         return res.status(500).json({
           success: false,
-
           message:
             "Unable to send verification OTP. Please try again later.",
         });
@@ -664,27 +679,18 @@ router.post(
 
       /*
       |--------------------------------------------------------------------------
-      | DO NOT CREATE JWT HERE
+      | SUCCESS
       |--------------------------------------------------------------------------
-      |
-      | JWT is created only after OTP verification.
-      |
       */
 
       return res.status(200).json({
         success: true,
 
-        requiresOtp: true,
+        requiresOtp:
+          true,
 
         message:
           "OTP sent to your registered email address.",
-
-        /*
-        |----------------------------------------------------------------------
-        | Send the original login identifier back.
-        | This is used by the OTP verification page.
-        |----------------------------------------------------------------------
-        */
 
         userId:
           cleanUserId,
@@ -699,7 +705,6 @@ router.post(
 
       return res.status(500).json({
         success: false,
-
         message:
           "Server error. Please try again later.",
       });
@@ -707,15 +712,27 @@ router.post(
   }
 );
 
+/*
+|--------------------------------------------------------------------------
+| FORGOT PASSWORD
+|--------------------------------------------------------------------------
+|
+| POST /api/auth/forgot-password
+|
+*/
+
 router.post(
   "/forgot-password",
   async (req, res) => {
     try {
-      const { userId } = req.body;
+
+      const {
+        userId,
+      } = req.body;
 
       /*
       |--------------------------------------------------------------------------
-      | Validate
+      | VALIDATE
       |--------------------------------------------------------------------------
       */
 
@@ -727,32 +744,28 @@ router.post(
         });
       }
 
-      const cleanUserId = userId.trim();
+      const cleanUserId =
+        userId.trim();
 
       /*
       |--------------------------------------------------------------------------
-      | Find User
+      | FIND USER
       |--------------------------------------------------------------------------
       */
 
-      const user = await User.findOne({
-        $or: [
-          {
-            registrationNumber:
-              cleanUserId.toUpperCase(),
-          },
-          {
-            mobile:
-              cleanUserId,
-          },
-        ],
-      });
-
-      /*
-      |--------------------------------------------------------------------------
-      | User Not Found
-      |--------------------------------------------------------------------------
-      */
+      const user =
+        await User.findOne({
+          $or: [
+            {
+              registrationNumber:
+                cleanUserId.toUpperCase(),
+            },
+            {
+              mobile:
+                cleanUserId,
+            },
+          ],
+        });
 
       if (!user) {
         return res.status(404).json({
@@ -764,7 +777,7 @@ router.post(
 
       /*
       |--------------------------------------------------------------------------
-      | Check Email
+      | EMAIL CHECK
       |--------------------------------------------------------------------------
       */
 
@@ -778,75 +791,84 @@ router.post(
 
       /*
       |--------------------------------------------------------------------------
-      | Delete Previous Password Reset OTPs
+      | DELETE OLD RESET OTPS
       |--------------------------------------------------------------------------
       */
 
       await PasswordResetOTP.deleteMany({
-        userId: user._id,
+        userId:
+          user._id,
       });
 
       /*
       |--------------------------------------------------------------------------
-      | Generate OTP
+      | GENERATE OTP
       |--------------------------------------------------------------------------
       */
 
-      const otp = generateOTP();
+      const otp =
+        generateOTP();
 
       /*
       |--------------------------------------------------------------------------
-      | Hash OTP
+      | HASH OTP
       |--------------------------------------------------------------------------
       */
 
-      const otpHash = await bcrypt.hash(
-        otp,
-        10
-      );
+      const otpHash =
+        await bcrypt.hash(
+          otp,
+          10
+        );
 
       /*
       |--------------------------------------------------------------------------
-      | OTP Expiry
+      | EXPIRY
       |--------------------------------------------------------------------------
       */
 
-      const expiresAt = new Date(
-        Date.now() + 5 * 60 * 1000
-      );
+      const expiresAt =
+        new Date(
+          Date.now() +
+          5 * 60 * 1000
+        );
 
       /*
       |--------------------------------------------------------------------------
-      | Save OTP
+      | SAVE RESET OTP
       |--------------------------------------------------------------------------
       */
 
       await PasswordResetOTP.create({
-        userId: user._id,
+        userId:
+          user._id,
 
-        email: user.email,
+        email:
+          user.email,
 
         otpHash,
 
         expiresAt,
 
-        verified: false,
+        verified:
+          false,
 
-        attempts: 0,
+        attempts:
+          0,
       });
 
       /*
       |--------------------------------------------------------------------------
-      | Send Email
+      | SEND RESET EMAIL
       |--------------------------------------------------------------------------
       */
 
       try {
-        await transporter.sendMail({
-          from:
-            `"Application Portal" <${process.env.EMAIL_USER}>`,
 
-          to: user.email,
+        await sendEmail({
+
+          to:
+            user.email,
 
           subject:
             "Password Reset Verification OTP",
@@ -888,13 +910,13 @@ router.post(
                 </p>
 
                 <p>
-                  We received a request to reset
-                  your account password.
+                  We received a request
+                  to reset your account password.
                 </p>
 
                 <p>
-                  Your password reset verification
-                  OTP is:
+                  Your password reset
+                  verification OTP is:
                 </p>
 
                 <div style="
@@ -907,9 +929,7 @@ router.post(
                   letter-spacing:8px;
                   color:#ab183d;
                 ">
-
                   ${otp}
-
                 </div>
 
                 <p>
@@ -922,12 +942,14 @@ router.post(
                 <p style="
                   color:#777;
                 ">
-                  Do not share this OTP with anyone.
+                  Do not share this OTP
+                  with anyone.
                 </p>
 
                 <p>
-                  If you did not request a password
-                  reset, you can safely ignore this email.
+                  If you did not request
+                  a password reset, you can
+                  safely ignore this email.
                 </p>
 
                 <p>
@@ -946,32 +968,28 @@ router.post(
           user.email
         );
 
-} catch (emailError) {
-  console.error("=================================");
-  console.error("❌ PASSWORD RESET OTP EMAIL ERROR");
-  console.error("Message:", emailError.message);
-  console.error("Name:", emailError.name);
-  console.error("Code:", emailError.code);
-  console.error("Command:", emailError.command);
-  console.error("Response:", emailError.response);
-  console.error("Response Code:", emailError.responseCode);
-  console.error("Stack:", emailError.stack);
-  console.error("=================================");
+      } catch (emailError) {
 
-  // Remove OTP because email was not sent
-  await PasswordResetOTP.deleteMany({
-    userId: user._id,
-  });
+        console.error(
+          "❌ PASSWORD RESET EMAIL ERROR:",
+          emailError
+        );
 
-  return res.status(500).json({
-    success: false,
-    message:
-      "Unable to send password reset OTP. Please try again later.",
-  });
-}
+        await PasswordResetOTP.deleteMany({
+          userId:
+            user._id,
+        });
+
+        return res.status(500).json({
+          success: false,
+          message:
+            "Unable to send password reset OTP. Please try again later.",
+        });
+      }
+
       /*
       |--------------------------------------------------------------------------
-      | Success
+      | SUCCESS
       |--------------------------------------------------------------------------
       */
 
@@ -981,24 +999,23 @@ router.post(
         message:
           "Password reset OTP has been sent to your registered email address.",
 
-        userId: cleanUserId,
+        userId:
+          cleanUserId,
       });
 
     } catch (error) {
-  console.error("=================================");
-  console.error("❌ FORGOT PASSWORD OTP ERROR");
-  console.error("Message:", error.message);
-  console.error("Name:", error.name);
-  console.error("Code:", error.code);
-  console.error("Stack:", error.stack);
-  console.error("=================================");
 
-  return res.status(500).json({
-    success: false,
-    message:
-      "Server error. Please try again later.",
-  });
-}
+      console.error(
+        "❌ Forgot password error:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Server error. Please try again later.",
+      });
+    }
   }
 );
 
@@ -1009,69 +1026,98 @@ router.post(
 |
 | POST /api/auth/verify-forgot-password-otp
 |
-|--------------------------------------------------------------------------
 */
 
 router.post(
   "/verify-forgot-password-otp",
   async (req, res) => {
+
     try {
-      const { userId, otp } = req.body;
 
-      // --------------------------------------------
-      // Validate input
-      // --------------------------------------------
+      const {
+        userId,
+        otp,
+      } = req.body;
 
-      if (!userId || !otp) {
+      /*
+      |--------------------------------------------------------------------------
+      | VALIDATE
+      |--------------------------------------------------------------------------
+      */
+
+      if (
+        !userId ||
+        !otp
+      ) {
         return res.status(400).json({
           success: false,
-          message: "User ID and OTP are required.",
+          message:
+            "User ID and OTP are required.",
         });
       }
 
-      const cleanUserId = userId.trim();
-      const cleanOTP = otp.trim();
+      const cleanUserId =
+        userId.trim();
 
-      if (!/^\d{6}$/.test(cleanOTP)) {
+      const cleanOTP =
+        otp.trim();
+
+      if (
+        !/^\d{6}$/.test(
+          cleanOTP
+        )
+      ) {
         return res.status(400).json({
           success: false,
-          message: "OTP must be 6 digits.",
+          message:
+            "OTP must be 6 digits.",
         });
       }
 
-      // --------------------------------------------
-      // Find user
-      // --------------------------------------------
+      /*
+      |--------------------------------------------------------------------------
+      | FIND USER
+      |--------------------------------------------------------------------------
+      */
 
-      const user = await User.findOne({
-        $or: [
-          {
-            registrationNumber:
-              cleanUserId.toUpperCase(),
-          },
-          {
-            mobile: cleanUserId,
-          },
-        ],
-      });
+      const user =
+        await User.findOne({
+          $or: [
+            {
+              registrationNumber:
+                cleanUserId.toUpperCase(),
+            },
+            {
+              mobile:
+                cleanUserId,
+            },
+          ],
+        });
 
       if (!user) {
         return res.status(401).json({
           success: false,
-          message: "Invalid password reset request.",
+          message:
+            "Invalid password reset request.",
         });
       }
 
-      // --------------------------------------------
-      // Find latest password reset OTP
-      // --------------------------------------------
+      /*
+      |--------------------------------------------------------------------------
+      | FIND OTP
+      |--------------------------------------------------------------------------
+      */
 
       const otpRecord =
         await PasswordResetOTP.findOne({
-          userId: user._id,
-          verified: false,
+          userId:
+            user._id,
+
+          verified:
+            false,
         }).sort({
-          createdAt: -1,
+          createdAt:
+            -1,
         });
 
       if (!otpRecord) {
@@ -1082,14 +1128,18 @@ router.post(
         });
       }
 
-      // --------------------------------------------
-      // Check OTP expiry
-      // --------------------------------------------
+      /*
+      |--------------------------------------------------------------------------
+      | EXPIRY
+      |--------------------------------------------------------------------------
+      */
 
       if (
         !otpRecord.expiresAt ||
-        new Date() > otpRecord.expiresAt
+        new Date() >
+        otpRecord.expiresAt
       ) {
+
         await otpRecord.deleteOne();
 
         return res.status(401).json({
@@ -1099,11 +1149,16 @@ router.post(
         });
       }
 
-      // --------------------------------------------
-      // Check attempts
-      // --------------------------------------------
+      /*
+      |--------------------------------------------------------------------------
+      | ATTEMPTS
+      |--------------------------------------------------------------------------
+      */
 
-      if (otpRecord.attempts >= 5) {
+      if (
+        otpRecord.attempts >= 5
+      ) {
+
         await otpRecord.deleteOne();
 
         return res.status(429).json({
@@ -1113,27 +1168,34 @@ router.post(
         });
       }
 
-      // --------------------------------------------
-      // Compare OTP
-      // --------------------------------------------
+      /*
+      |--------------------------------------------------------------------------
+      | COMPARE OTP
+      |--------------------------------------------------------------------------
+      */
 
-      const otpValid = await bcrypt.compare(
-        cleanOTP,
-        otpRecord.otpHash
-      );
+      const otpValid =
+        await bcrypt.compare(
+          cleanOTP,
+          otpRecord.otpHash
+        );
 
       if (!otpValid) {
+
         otpRecord.attempts += 1;
 
         await otpRecord.save();
 
-        const remainingAttempts = Math.max(
-          0,
-          5 - otpRecord.attempts
-        );
+        const remainingAttempts =
+          Math.max(
+            0,
+            5 -
+            otpRecord.attempts
+          );
 
         return res.status(401).json({
           success: false,
+
           message:
             remainingAttempts > 0
               ? `Invalid OTP. ${remainingAttempts} attempt${
@@ -1145,43 +1207,61 @@ router.post(
         });
       }
 
-      // --------------------------------------------
-      // Generate reset token
-      // --------------------------------------------
+      /*
+      |--------------------------------------------------------------------------
+      | CREATE RESET TOKEN
+      |--------------------------------------------------------------------------
+      */
 
       const resetToken =
-        crypto.randomBytes(32).toString("hex");
+        crypto
+          .randomBytes(32)
+          .toString("hex");
 
-      // --------------------------------------------
-      // Hash reset token before storing
-      // --------------------------------------------
+      /*
+      |--------------------------------------------------------------------------
+      | HASH RESET TOKEN
+      |--------------------------------------------------------------------------
+      */
 
       const resetTokenHash =
         crypto
-          .createHash("sha256")
-          .update(resetToken)
+          .createHash(
+            "sha256"
+          )
+          .update(
+            resetToken
+          )
           .digest("hex");
 
-      // --------------------------------------------
-      // Mark OTP as verified
-      // --------------------------------------------
+      /*
+      |--------------------------------------------------------------------------
+      | MARK VERIFIED
+      |--------------------------------------------------------------------------
+      */
 
-      otpRecord.verified = true;
-      otpRecord.verifiedAt = new Date();
+      otpRecord.verified =
+        true;
+
+      otpRecord.verifiedAt =
+        new Date();
 
       otpRecord.resetTokenHash =
         resetTokenHash;
 
       otpRecord.resetTokenExpiresAt =
         new Date(
-          Date.now() + 10 * 60 * 1000
+          Date.now() +
+          10 * 60 * 1000
         );
 
       await otpRecord.save();
 
-      // --------------------------------------------
-      // Return reset token to frontend
-      // --------------------------------------------
+      /*
+      |--------------------------------------------------------------------------
+      | RETURN RESET TOKEN
+      |--------------------------------------------------------------------------
+      */
 
       return res.status(200).json({
         success: true,
@@ -1189,12 +1269,15 @@ router.post(
         message:
           "OTP verified successfully.",
 
-        userId: cleanUserId,
+        userId:
+          cleanUserId,
 
-        resetToken: resetToken,
+        resetToken:
+          resetToken,
       });
 
     } catch (error) {
+
       console.error(
         "❌ Forgot password OTP verification error:",
         error
@@ -1216,13 +1299,14 @@ router.post(
 |
 | POST /api/auth/reset-password
 |
-|--------------------------------------------------------------------------
 */
 
 router.post(
   "/reset-password",
   async (req, res) => {
+
     try {
+
       const {
         userId,
         resetToken,
@@ -1232,15 +1316,22 @@ router.post(
       console.log(
         "Reset password request:",
         {
-          userIdProvided: !!userId,
-          resetTokenProvided: !!resetToken,
-          newPasswordProvided: !!newPassword,
+          userIdProvided:
+            !!userId,
+
+          resetTokenProvided:
+            !!resetToken,
+
+          newPasswordProvided:
+            !!newPassword,
         }
       );
 
-      // --------------------------------------------
-      // Validate
-      // --------------------------------------------
+      /*
+      |--------------------------------------------------------------------------
+      | VALIDATE
+      |--------------------------------------------------------------------------
+      */
 
       if (
         !userId ||
@@ -1249,30 +1340,35 @@ router.post(
       ) {
         return res.status(400).json({
           success: false,
-
           message:
             "User ID, reset token and new password are required.",
         });
       }
 
-      // --------------------------------------------
-      // Password length
-      // --------------------------------------------
+      /*
+      |--------------------------------------------------------------------------
+      | PASSWORD LENGTH
+      |--------------------------------------------------------------------------
+      */
 
-      if (newPassword.length < 8) {
+      if (
+        newPassword.length < 8
+      ) {
         return res.status(400).json({
           success: false,
-
           message:
             "Password must be at least 8 characters.",
         });
       }
 
-      const cleanUserId = userId.trim();
+      const cleanUserId =
+        userId.trim();
 
-      // --------------------------------------------
-      // Find user
-      // --------------------------------------------
+      /*
+      |--------------------------------------------------------------------------
+      | FIND USER
+      |--------------------------------------------------------------------------
+      */
 
       const user =
         await User.findOne({
@@ -1282,7 +1378,8 @@ router.post(
                 cleanUserId.toUpperCase(),
             },
             {
-              mobile: cleanUserId,
+              mobile:
+                cleanUserId,
             },
           ],
         });
@@ -1290,64 +1387,78 @@ router.post(
       if (!user) {
         return res.status(401).json({
           success: false,
-
           message:
             "Invalid password reset request.",
         });
       }
 
-      // --------------------------------------------
-      // Hash reset token
-      // --------------------------------------------
+      /*
+      |--------------------------------------------------------------------------
+      | HASH RESET TOKEN
+      |--------------------------------------------------------------------------
+      */
 
       const resetTokenHash =
         crypto
-          .createHash("sha256")
-          .update(resetToken)
+          .createHash(
+            "sha256"
+          )
+          .update(
+            resetToken
+          )
           .digest("hex");
 
-      // --------------------------------------------
-      // Find verified reset request
-      // --------------------------------------------
+      /*
+      |--------------------------------------------------------------------------
+      | FIND RESET RECORD
+      |--------------------------------------------------------------------------
+      */
 
       const resetRecord =
         await PasswordResetOTP.findOne({
-          userId: user._id,
-          verified: true,
+          userId:
+            user._id,
+
+          verified:
+            true,
+
           resetTokenHash,
         });
 
       if (!resetRecord) {
         return res.status(401).json({
           success: false,
-
           message:
             "Invalid or expired password reset session. Please start again.",
         });
       }
 
-      // --------------------------------------------
-      // Check reset token expiry
-      // --------------------------------------------
+      /*
+      |--------------------------------------------------------------------------
+      | RESET TOKEN EXPIRY
+      |--------------------------------------------------------------------------
+      */
 
       if (
         !resetRecord.resetTokenExpiresAt ||
         new Date() >
-          resetRecord.resetTokenExpiresAt
+        resetRecord.resetTokenExpiresAt
       ) {
+
         await resetRecord.deleteOne();
 
         return res.status(401).json({
           success: false,
-
           message:
             "Password reset session has expired. Please start again.",
         });
       }
 
-      // --------------------------------------------
-      // Hash new password
-      // --------------------------------------------
+      /*
+      |--------------------------------------------------------------------------
+      | HASH NEW PASSWORD
+      |--------------------------------------------------------------------------
+      */
 
       const passwordHash =
         await bcrypt.hash(
@@ -1355,25 +1466,33 @@ router.post(
           12
         );
 
-      // --------------------------------------------
-      // Update user password
-      // --------------------------------------------
+      /*
+      |--------------------------------------------------------------------------
+      | UPDATE PASSWORD
+      |--------------------------------------------------------------------------
+      */
 
-      user.password = passwordHash;
+      user.password =
+        passwordHash;
 
       await user.save();
 
-      // --------------------------------------------
-      // Delete used reset record
-      // --------------------------------------------
+      /*
+      |--------------------------------------------------------------------------
+      | DELETE USED RESET RECORD
+      |--------------------------------------------------------------------------
+      */
 
       await PasswordResetOTP.deleteOne({
-        _id: resetRecord._id,
+        _id:
+          resetRecord._id,
       });
 
-      // --------------------------------------------
-      // Success
-      // --------------------------------------------
+      /*
+      |--------------------------------------------------------------------------
+      | SUCCESS
+      |--------------------------------------------------------------------------
+      */
 
       return res.status(200).json({
         success: true,
@@ -1383,6 +1502,7 @@ router.post(
       });
 
     } catch (error) {
+
       console.error(
         "❌ Password reset error:",
         error
@@ -1390,7 +1510,6 @@ router.post(
 
       return res.status(500).json({
         success: false,
-
         message:
           "Server error. Please try again later.",
       });
@@ -1411,6 +1530,7 @@ router.post(
   "/verify-otp",
   loginLimiter,
   async (req, res) => {
+
     try {
 
       const {
@@ -1420,7 +1540,7 @@ router.post(
 
       /*
       |--------------------------------------------------------------------------
-      | Validate
+      | VALIDATE
       |--------------------------------------------------------------------------
       */
 
@@ -1430,7 +1550,6 @@ router.post(
       ) {
         return res.status(400).json({
           success: false,
-
           message:
             "User ID and OTP are required.",
         });
@@ -1439,9 +1558,24 @@ router.post(
       const cleanUserId =
         userId.trim();
 
+      const cleanOTP =
+        otp.trim();
+
+      if (
+        !/^\d{6}$/.test(
+          cleanOTP
+        )
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "OTP must be 6 digits.",
+        });
+      }
+
       /*
       |--------------------------------------------------------------------------
-      | Find User
+      | FIND USER
       |--------------------------------------------------------------------------
       */
 
@@ -1452,7 +1586,6 @@ router.post(
               registrationNumber:
                 cleanUserId.toUpperCase(),
             },
-
             {
               mobile:
                 cleanUserId,
@@ -1463,7 +1596,6 @@ router.post(
       if (!user) {
         return res.status(401).json({
           success: false,
-
           message:
             "Invalid verification request.",
         });
@@ -1471,7 +1603,7 @@ router.post(
 
       /*
       |--------------------------------------------------------------------------
-      | Find Latest OTP
+      | FIND LATEST LOGIN OTP
       |--------------------------------------------------------------------------
       */
 
@@ -1490,7 +1622,6 @@ router.post(
       if (!otpRecord) {
         return res.status(401).json({
           success: false,
-
           message:
             "OTP expired or not found. Please login again.",
         });
@@ -1498,11 +1629,12 @@ router.post(
 
       /*
       |--------------------------------------------------------------------------
-      | Expiry Check
+      | EXPIRY
       |--------------------------------------------------------------------------
       */
 
       if (
+        !otpRecord.expiresAt ||
         new Date() >
         otpRecord.expiresAt
       ) {
@@ -1511,7 +1643,6 @@ router.post(
 
         return res.status(401).json({
           success: false,
-
           message:
             "OTP has expired. Please login again.",
         });
@@ -1519,7 +1650,7 @@ router.post(
 
       /*
       |--------------------------------------------------------------------------
-      | Attempt Limit
+      | ATTEMPTS
       |--------------------------------------------------------------------------
       */
 
@@ -1531,7 +1662,6 @@ router.post(
 
         return res.status(429).json({
           success: false,
-
           message:
             "Too many incorrect OTP attempts. Please login again.",
         });
@@ -1539,13 +1669,13 @@ router.post(
 
       /*
       |--------------------------------------------------------------------------
-      | OTP Validation
+      | COMPARE OTP
       |--------------------------------------------------------------------------
       */
 
       const otpValid =
         await bcrypt.compare(
-          otp.trim(),
+          cleanOTP,
           otpRecord.otpHash
         );
 
@@ -1555,17 +1685,30 @@ router.post(
 
         await otpRecord.save();
 
+        const remainingAttempts =
+          Math.max(
+            0,
+            5 -
+            otpRecord.attempts
+          );
+
         return res.status(401).json({
           success: false,
 
           message:
-            "Invalid OTP.",
+            remainingAttempts > 0
+              ? `Invalid OTP. ${remainingAttempts} attempt${
+                  remainingAttempts === 1
+                    ? ""
+                    : "s"
+                } remaining.`
+              : "Invalid OTP.",
         });
       }
 
       /*
       |--------------------------------------------------------------------------
-      | Mark OTP Verified
+      | MARK VERIFIED
       |--------------------------------------------------------------------------
       */
 
@@ -1576,24 +1719,30 @@ router.post(
 
       /*
       |--------------------------------------------------------------------------
-      | Create JWT
+      | JWT SECRET
       |--------------------------------------------------------------------------
       */
 
       if (
         !process.env.JWT_SECRET
       ) {
+
         console.error(
           "JWT_SECRET is missing."
         );
 
         return res.status(500).json({
           success: false,
-
           message:
             "Server authentication configuration error.",
         });
       }
+
+      /*
+      |--------------------------------------------------------------------------
+      | CREATE JWT
+      |--------------------------------------------------------------------------
+      */
 
       const token =
         jwt.sign(
@@ -1616,7 +1765,7 @@ router.post(
 
       /*
       |--------------------------------------------------------------------------
-      | Delete Used OTP
+      | DELETE USED OTP
       |--------------------------------------------------------------------------
       */
 
@@ -1627,12 +1776,14 @@ router.post(
 
       /*
       |--------------------------------------------------------------------------
-      | Login Success
+      | SUCCESS
       |--------------------------------------------------------------------------
       */
 
       return res.status(200).json({
-        success: true,
+
+        success:
+          true,
 
         message:
           "Login successful.",
@@ -1666,7 +1817,6 @@ router.post(
 
       return res.status(500).json({
         success: false,
-
         message:
           "Server error. Please try again later.",
       });
