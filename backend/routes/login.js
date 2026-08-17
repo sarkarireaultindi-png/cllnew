@@ -271,12 +271,14 @@ const verifyCaptcha = (
 | EMAIL TRANSPORTER
 |--------------------------------------------------------------------------
 */
-
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 587,
   secure: false,
   requireTLS: true,
+
+  // Force IPv4 on Render
+  family: 4,
 
   auth: {
     user: process.env.EMAIL_USER,
