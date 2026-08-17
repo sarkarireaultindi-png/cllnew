@@ -1,62 +1,28 @@
 import express from "express";
 import multer from "multer";
 import path from "path";
-import fs from "fs";
 
+import cloudinary from "../config/cloudinary.js";
 import DocumentUpload from "../models/DocumentUpload.js";
 
 const router = express.Router();
 
 /*
 |--------------------------------------------------------------------------
-| UPLOAD DIRECTORY
+| MULTER MEMORY STORAGE
+|--------------------------------------------------------------------------
+|
+| Files are kept temporarily in memory and uploaded directly to
+| Cloudinary. Nothing is permanently stored on the Render filesystem.
+|
 |--------------------------------------------------------------------------
 */
 
-const uploadDir = "uploads/documents";
-
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, {
-    recursive: true,
-  });
-}
-
-/*
-|--------------------------------------------------------------------------
-| MULTER STORAGE
-|--------------------------------------------------------------------------
-*/
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-
-  filename: (req, file, cb) => {
-    const ext = path
-      .extname(file.originalname)
-      .toLowerCase();
-
-    const filename =
-      `${file.fieldname}-${Date.now()}-${Math.round(
-        Math.random() * 1e9
-      )}${ext}`;
-
-    cb(null, filename);
-  },
-});
+const storage = multer.memoryStorage();
 
 /*
 |--------------------------------------------------------------------------
 | FILE FILTER
-|--------------------------------------------------------------------------
-|
-| Photo + Signature:
-| JPG / JPEG / PNG
-|
-| Certificates:
-| JPG / JPEG / PNG / PDF
-|
 |--------------------------------------------------------------------------
 */
 
@@ -162,7 +128,6 @@ const upload = multer({
   fileFilter,
 
   limits: {
-    // 2 MB maximum server-side limit
     fileSize: 2 * 1024 * 1024,
   },
 });
@@ -202,18 +167,109 @@ const documentFields = [
 
 /*
 |--------------------------------------------------------------------------
+| UPLOAD BUFFER TO CLOUDINARY
+|--------------------------------------------------------------------------
+*/
+
+const uploadToCloudinary = (
+  buffer,
+  originalName,
+  fieldName,
+  mimetype
+) => {
+  return new Promise((resolve, reject) => {
+    const extension = path
+      .extname(originalName)
+      .toLowerCase();
+
+    /*
+    |--------------------------------------------------------------------------
+    | Images
+    |--------------------------------------------------------------------------
+    */
+
+    const resourceType =
+      mimetype === "application/pdf"
+        ? "raw"
+        : "image";
+
+    const uploadStream =
+      cloudinary.uploader.upload_stream(
+        {
+          folder: "cllnew/documents",
+
+          resource_type: resourceType,
+
+          public_id:
+            `${fieldName}-${Date.now()}-${Math.round(
+              Math.random() * 1e9
+            )}`,
+
+          /*
+          |----------------------------------------------------------------------
+          | Keep PDF extension
+          |----------------------------------------------------------------------
+          */
+
+          ...(resourceType === "raw"
+            ? {
+                format: extension.replace(
+                  ".",
+                  ""
+                ),
+              }
+            : {}),
+        },
+
+        (error, result) => {
+          if (error) {
+            return reject(error);
+          }
+
+          resolve(result);
+        }
+      );
+
+    uploadStream.end(buffer);
+  });
+};
+
+/*
+|--------------------------------------------------------------------------
+| DELETE OLD CLOUDINARY FILE
+|--------------------------------------------------------------------------
+*/
+
+const deleteFromCloudinary = async (
+  publicId,
+  resourceType = "image"
+) => {
+  if (!publicId) {
+    return;
+  }
+
+  try {
+    await cloudinary.uploader.destroy(
+      publicId,
+      {
+        resource_type: resourceType,
+      }
+    );
+  } catch (error) {
+    console.error(
+      "Cloudinary delete error:",
+      error
+    );
+  }
+};
+
+/*
+|--------------------------------------------------------------------------
 | POST DOCUMENTS
 |--------------------------------------------------------------------------
 |
-| IMPORTANT:
-|
-| If the user already has photo in MongoDB, they can upload only
-| signature.
-|
-| If the user already has signature in MongoDB, they can upload only
-| photo.
-|
-| If neither exists, both are required.
+| POST:
+| /api/document-upload
 |
 |--------------------------------------------------------------------------
 */
@@ -252,43 +308,43 @@ router.post(
 
       /*
       |--------------------------------------------------------------------------
-      | CHECK WHAT WAS ACTUALLY UPLOADED
+      | CHECK NEW PHOTO
       |--------------------------------------------------------------------------
       */
 
-      const hasNewPhoto =
-        Boolean(
-          req.files?.photo?.[0]
-        );
+      const hasNewPhoto = Boolean(
+        req.files?.photo?.[0]
+      );
 
-      const hasNewSignature =
-        Boolean(
-          req.files?.signature?.[0]
-        );
+      /*
+      |--------------------------------------------------------------------------
+      | CHECK NEW SIGNATURE
+      |--------------------------------------------------------------------------
+      */
+
+      const hasNewSignature = Boolean(
+        req.files?.signature?.[0]
+      );
 
       /*
       |--------------------------------------------------------------------------
       | REQUIRED DOCUMENT CHECK
-      |--------------------------------------------------------------------------
-      |
-      | A document can be satisfied by:
-      |
-      | 1. New uploaded file
-      | OR
-      | 2. Existing MongoDB file
-      |
       |--------------------------------------------------------------------------
       */
 
       const hasPhoto =
         hasNewPhoto ||
         Boolean(
+          existingDocument?.photo?.cloudinaryUrl ||
+          existingDocument?.photo?.url ||
           existingDocument?.photo?.filename
         );
 
       const hasSignature =
         hasNewSignature ||
         Boolean(
+          existingDocument?.signature?.cloudinaryUrl ||
+          existingDocument?.signature?.url ||
           existingDocument?.signature?.filename
         );
 
@@ -322,52 +378,7 @@ router.post(
 
       /*
       |--------------------------------------------------------------------------
-      | PREPARE NEW DOCUMENT DATA
-      |--------------------------------------------------------------------------
-      */
-
-      const documentData = {};
-
-      for (
-        const documentName of documentFields.map(
-          (field) => field.name
-        )
-      ) {
-        /*
-        |--------------------------------------------------------------------------
-        | Only update fields that were actually uploaded
-        |--------------------------------------------------------------------------
-        */
-
-        if (
-          req.files &&
-          req.files[documentName] &&
-          req.files[documentName][0]
-        ) {
-          const file =
-            req.files[documentName][0];
-
-          documentData[documentName] = {
-            filename: file.filename,
-
-            originalName:
-              file.originalname,
-
-            path: file.path,
-
-            mimetype:
-              file.mimetype,
-
-            size: file.size,
-
-            uploadedAt: new Date(),
-          };
-        }
-      }
-
-      /*
-      |--------------------------------------------------------------------------
-      | CREATE NEW RECORD
+      | CREATE RECORD IF NOT EXISTS
       |--------------------------------------------------------------------------
       */
 
@@ -380,32 +391,112 @@ router.post(
 
       /*
       |--------------------------------------------------------------------------
-      | UPDATE ONLY NEWLY UPLOADED DOCUMENTS
-      |--------------------------------------------------------------------------
-      |
-      | IMPORTANT:
-      |
-      | If user uploads only signature:
-      |
-      | existing photo stays untouched.
-      |
-      | If user uploads only photo:
-      |
-      | existing signature stays untouched.
-      |
+      | UPLOAD NEW FILES TO CLOUDINARY
       |--------------------------------------------------------------------------
       */
 
-      Object.keys(documentData).forEach(
-        (documentName) => {
-          existingDocument[documentName] =
-            documentData[documentName];
+      for (
+        const documentField of documentFields
+      ) {
+        const fieldName =
+          documentField.name;
+
+        const file =
+          req.files?.[fieldName]?.[0];
+
+        /*
+        |--------------------------------------------------------------------------
+        | Nothing uploaded for this field
+        |--------------------------------------------------------------------------
+        */
+
+        if (!file) {
+          continue;
         }
-      );
+
+        console.log(
+          `Uploading ${fieldName} to Cloudinary...`
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Upload
+        |--------------------------------------------------------------------------
+        */
+
+        const cloudinaryResult =
+          await uploadToCloudinary(
+            file.buffer,
+            file.originalname,
+            fieldName,
+            file.mimetype
+          );
+
+        console.log(
+          `${fieldName} uploaded:`,
+          cloudinaryResult.secure_url
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | OLD CLOUDINARY FILE
+        |--------------------------------------------------------------------------
+        */
+
+        const oldDocument =
+          existingDocument[fieldName];
+
+        if (
+          oldDocument?.publicId &&
+          oldDocument.publicId !==
+            cloudinaryResult.public_id
+        ) {
+          await deleteFromCloudinary(
+            oldDocument.publicId,
+            oldDocument.resourceType ||
+              "image"
+          );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | SAVE CLOUDINARY INFORMATION
+        |--------------------------------------------------------------------------
+        */
+
+        existingDocument[fieldName] = {
+          filename:
+            cloudinaryResult.public_id,
+
+          originalName:
+            file.originalname,
+
+          cloudinaryUrl:
+            cloudinaryResult.secure_url,
+
+          url:
+            cloudinaryResult.secure_url,
+
+          publicId:
+            cloudinaryResult.public_id,
+
+          resourceType:
+            cloudinaryResult.resource_type,
+
+          mimetype:
+            file.mimetype,
+
+          size:
+            file.size,
+
+          uploadedAt:
+            new Date(),
+        };
+      }
 
       /*
       |--------------------------------------------------------------------------
-      | SAVE
+      | SAVE MONGODB
       |--------------------------------------------------------------------------
       */
 
@@ -442,7 +533,8 @@ router.post(
         error instanceof multer.MulterError
       ) {
         if (
-          error.code === "LIMIT_FILE_SIZE"
+          error.code ===
+          "LIMIT_FILE_SIZE"
         ) {
           return res.status(400).json({
             success: false,
@@ -508,7 +600,7 @@ router.get(
 
       /*
       |--------------------------------------------------------------------------
-      | No documents yet
+      | NO DOCUMENTS
       |--------------------------------------------------------------------------
       */
 
