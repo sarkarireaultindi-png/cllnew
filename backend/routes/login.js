@@ -296,18 +296,6 @@ const transporter = nodemailer.createTransport({
 |--------------------------------------------------------------------------
 */
 
-transporter.verify((error) => {
-  if (error) {
-    console.error(
-      "❌ Gmail SMTP Error:",
-      error.message
-    );
-  } else {
-    console.log(
-      "✅ Gmail SMTP connection successful"
-    );
-  }
-});
 
 /*
 |--------------------------------------------------------------------------
