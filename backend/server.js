@@ -1,9 +1,11 @@
 import "./config/env.js";
+
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 
 import connectDB from "./config/db.js";
+
 import userDetailsRoutes from "./routes/userDetails.js";
 import loginRoutes from "./routes/login.js";
 import personalDetailsRoutes from "./routes/personalDetails.js";
@@ -14,54 +16,130 @@ import authRouter from "./routes/auth.js";
 
 dotenv.config();
 
+// ======================================================
+// DATABASE
+// ======================================================
+
 connectDB();
+
+// ======================================================
+// EXPRESS APP
+// ======================================================
 
 const app = express();
 
-app.use(cors());
+// ======================================================
+// MIDDLEWARE
+// ======================================================
+
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
-app.use("/api/users", userDetailsRoutes);
-app.use("/api/auth", loginRoutes);
+// ======================================================
+// USER REGISTRATION
+// ======================================================
+
+app.use(
+  "/api/users",
+  userDetailsRoutes
+);
+
+// ======================================================
+// AUTHENTICATION
+// ======================================================
+
+// login.js
+app.use(
+  "/api/auth",
+  loginRoutes
+);
+
+// auth.js
+app.use(
+  "/api/auth",
+  authRouter
+);
+
+// ======================================================
+// FEE DETAILS
+// ======================================================
 
 app.use(
   "/api/fee-details",
   feeDetailsRouter
 );
 
-app.use("/api/auth", authRouter);
+// ======================================================
+// DOCUMENT UPLOAD
+// ======================================================
 
 app.use(
   "/api/document-upload",
   documentUploadRouter
 );
+
+// Uploaded files
 app.use(
   "/uploads",
   express.static("uploads")
 );
+
+// ======================================================
+// QUALIFICATION DETAILS
+// ======================================================
 
 app.use(
   "/api/qualification-details",
   qualificationDetailsRoutes
 );
 
+// ======================================================
+// PERSONAL DETAILS
+// ======================================================
+
 app.use(
   "/api/personal-details",
   personalDetailsRoutes
 );
 
-console.log("Email:", process.env.EMAIL_USER);
+// ======================================================
+// RESEND CONFIGURATION CHECK
+// ======================================================
+
 console.log(
-  "Email password configured:",
-  !!process.env.EMAIL_PASSWORD
+  "Resend API key configured:",
+  !!process.env.RESEND_API_KEY
 );
+
+console.log(
+  "Email sender:",
+  process.env.EMAIL_FROM ||
+    "Not configured"
+);
+
+// ======================================================
+// ROOT
+// ======================================================
 
 app.get("/", (req, res) => {
   res.send("Backend Running...");
 });
 
-const PORT = process.env.PORT || 5000;
+// ======================================================
+// SERVER
+// ======================================================
+
+const PORT =
+  process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(
+    `🚀 Server running on port ${PORT}`
+  );
 });
