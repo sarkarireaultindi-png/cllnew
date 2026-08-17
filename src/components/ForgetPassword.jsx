@@ -12,7 +12,7 @@ import {
 } from "react-icons/fa";
 
 export default function ForgotPassword() {
-  const API_URL = "https://www.ccl.ac/api/auth";
+  const API_URL = "https://cllnew.onrender.com/api/auth";
 
   /*
   |--------------------------------------------------------------------------

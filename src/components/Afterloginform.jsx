@@ -154,7 +154,7 @@ export default function PersonalDetailsForm() {
         setError("");
 
         const response = await fetch(
-          `https://www.ccl.ac/api/personal-details/${userId}`
+          `https://cllnew.onrender.com/api/personal-details/${userId}`
         );
 
         const data = await response.json();
@@ -520,7 +520,7 @@ export default function PersonalDetailsForm() {
       setLoading(true);
 
       const response = await fetch(
-        "https://www.ccl.ac/api/personal-details",
+        "https://cllnew.onrender.com/api/personal-details",
         {
           method: "POST",
 

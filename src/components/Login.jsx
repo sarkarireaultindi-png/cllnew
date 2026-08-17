@@ -17,7 +17,7 @@ import {
 export default function Login() {
   const navigate = useNavigate();
 
-  const API_URL = "https://www.ccl.ac/api/auth";
+  const API_URL = "https://cllnew.onrender.com/api/auth";
 
   const messageRef = useRef(null);
 

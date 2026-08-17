@@ -76,7 +76,7 @@ const handleSubmit = async (e) => {
     setLoading(true);
 
     const response = await fetch(
-      "https://www.ccl.ac/api/users/register",
+      "https://cllnew.onrender.com/api/users/register",
       {
         method: "POST",
 

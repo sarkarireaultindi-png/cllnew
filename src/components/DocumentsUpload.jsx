@@ -200,7 +200,7 @@ export default function DocumentsUpload() {
         setError("");
 
         const response = await fetch(
-          `https://www.ccl.ac/document-upload/${userId}`
+          `https://cllnew.onrender.com/document-upload/${userId}`
         );
 
         let data = {};
@@ -928,7 +928,7 @@ export default function DocumentsUpload() {
 
       const response =
         await fetch(
-          "https://www.ccl.ac/api/document-upload",
+          "https://cllnew.onrender.com/api/document-upload",
           {
             method: "POST",
             body: formData,
@@ -1082,7 +1082,7 @@ export default function DocumentsUpload() {
           "/"
         );
 
-      return `https://www.ccl.ac/${cleanPath}`;
+      return `https://cllnew.onrender.com/${cleanPath}`;
     }
 
     return "#";

@@ -114,7 +114,7 @@ export default function Profile() {
       setSaving(true);
 
       const response = await fetch(
-        "https://www.ccl.ac/api/auth/change-password",
+        "https://cllnew.onrender.com/api/auth/change-password",
         {
           method: "PUT",
           headers: {

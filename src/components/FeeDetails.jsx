@@ -71,7 +71,7 @@ export default function FeeDetails() {
         */
 
         const response = await fetch(
-          `https://www.ccl.ac/api/fee-details/${userId}`
+          `https://cllnew.onrender.com/api/fee-details/${userId}`
         );
 
         let data = {};

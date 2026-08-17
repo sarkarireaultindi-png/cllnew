@@ -162,7 +162,7 @@ export default function QualificationDetails() {
         setError("");
 
         const response = await fetch(
-          `https://www.ccl.ac/api/qualification-details/${userId}`
+          `https://cllnew.onrender.com/api/qualification-details/${userId}`
         );
 
         const data = await response.json();
@@ -443,7 +443,7 @@ export default function QualificationDetails() {
       setSaving(true);
 
       const response = await fetch(
-        "https://www.ccl.ac/qualification-details",
+        "https://cllnew.onrender.com/qualification-details",
         {
           method: "POST",
 

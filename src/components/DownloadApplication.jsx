@@ -16,7 +16,7 @@ export default function DownloadApplication() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const API_URL = "https://www.ccl.ac";
+  const API_URL = "https://cllnew.onrender.com";
 
   /*
   |--------------------------------------------------------------------------
