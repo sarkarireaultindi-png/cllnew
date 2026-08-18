@@ -20,7 +20,7 @@ const router = express.Router();
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const EMAIL_FROM =
-  process.env.EMAIL_FROM || "Application Portal <onboarding@resend.dev>";
+  process.env.EMAIL_FROM || "Ccl Portal <onboarding@resend.dev>";
 
 /*
 |--------------------------------------------------------------------------
@@ -644,7 +644,8 @@ router.post(
 
                 <p>
                   Regards,<br/>
-                  Application Portal
+                  Central Coalfields Limited <br/>
+                  Government of India
                 </p>
 
               </div>
@@ -954,7 +955,8 @@ router.post(
 
                 <p>
                   Regards,<br/>
-                  Application Portal
+                  Central CoalFields Limited <br/>
+                  Government Of India
                 </p>
 
               </div>
