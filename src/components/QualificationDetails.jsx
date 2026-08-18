@@ -1,9 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  Link,
-  useLocation,
-  useNavigate,
-} from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 export default function QualificationDetails() {
   const navigate = useNavigate();
@@ -15,9 +11,7 @@ export default function QualificationDetails() {
   |--------------------------------------------------------------------------
   */
 
-  const userId =
-    location.state?.userId ||
-    localStorage.getItem("userId");
+  const userId = location.state?.userId || localStorage.getItem("userId");
 
   /*
   |--------------------------------------------------------------------------
@@ -39,57 +33,57 @@ export default function QualificationDetails() {
   */
 
   const examCenters = [
-  "New Delhi",
-  "Mumbai",
-  "Kolkata",
-  "Chennai",
-  "Bengaluru",
-  "Hyderabad",
-  "Ahmedabad",
-  "Pune",
-  "Jaipur",
-  "Lucknow",
-  "Patna",
-  "Bhopal",
-  "Chandigarh",
-  "Bhubaneswar",
-  "Guwahati",
-  "Agra",
-  "Allahabad (Prayagraj)",
-  "Amritsar",
-  "Bareilly",
-  "Dehradun",
-  "Gorakhpur",
-  "Kanpur",
-  "Meerut",
-  "Varanasi",
-  "Noida",
-  "Ghaziabad",
-  "Ranchi",
-  "Jamshedpur",
-  "Raipur",
-  "Bilaspur",
-  "Bokaro",
-  "Indore",
-  "Jabalpur",
-  "Gwalior",
-  "Aurangabad",
-  "Nagpur",
-  "Nashik",
-  "Thane",
-  "Visakhapatnam",
-  "Vijayawada",
-  "Tirupati",
-  "Kochi",
-  "Thiruvananthapuram",
-  "Coimbatore",
-  "Madurai",
-  "Mysuru",
-  "Surat",
-  "Vadodara",
-  "Rajkot",
-  "Srinagar",
-];
+    "New Delhi",
+    "Mumbai",
+    "Kolkata",
+    "Chennai",
+    "Bengaluru",
+    "Hyderabad",
+    "Ahmedabad",
+    "Pune",
+    "Jaipur",
+    "Lucknow",
+    "Patna",
+    "Bhopal",
+    "Chandigarh",
+    "Bhubaneswar",
+    "Guwahati",
+    "Agra",
+    "Allahabad (Prayagraj)",
+    "Amritsar",
+    "Bareilly",
+    "Dehradun",
+    "Gorakhpur",
+    "Kanpur",
+    "Meerut",
+    "Varanasi",
+    "Noida",
+    "Ghaziabad",
+    "Ranchi",
+    "Jamshedpur",
+    "Raipur",
+    "Bilaspur",
+    "Bokaro",
+    "Indore",
+    "Jabalpur",
+    "Gwalior",
+    "Aurangabad",
+    "Nagpur",
+    "Nashik",
+    "Thane",
+    "Visakhapatnam",
+    "Vijayawada",
+    "Tirupati",
+    "Kochi",
+    "Thiruvananthapuram",
+    "Coimbatore",
+    "Madurai",
+    "Mysuru",
+    "Surat",
+    "Vadodara",
+    "Rajkot",
+    "Srinagar",
+  ];
 
   /*
   |--------------------------------------------------------------------------
@@ -102,7 +96,7 @@ export default function QualificationDetails() {
       qualification,
       boardUniversity: "",
       passingYear: "",
-      status: "",
+      rollNumber: "",
       marks: "",
       percentage: "",
     }));
@@ -150,7 +144,7 @@ export default function QualificationDetails() {
     const fetchQualificationDetails = async () => {
       if (!userId) {
         setError(
-          "User registration information not found. Please login again."
+          "User registration information not found. Please login again.",
         );
 
         setLoading(false);
@@ -162,20 +156,18 @@ export default function QualificationDetails() {
         setError("");
 
         const response = await fetch(
-          `https://cllnew.onrender.com/api/qualification-details/${userId}`
+          `https://cllnew.onrender.com/api/qualification-details/${userId}`,
         );
 
         const data = await response.json();
 
         if (!response.ok) {
           throw new Error(
-            data.message ||
-              "Unable to fetch qualification details."
+            data.message || "Unable to fetch qualification details.",
           );
         }
 
-        const saved =
-          data.qualificationDetails;
+        const saved = data.qualificationDetails;
 
         /*
         |--------------------------------------------------------------------------
@@ -209,40 +201,29 @@ export default function QualificationDetails() {
         |--------------------------------------------------------------------------
         */
 
-        const savedEducation =
-          Array.isArray(saved.education)
-            ? saved.education
-            : [];
+        const savedEducation = Array.isArray(saved.education)
+          ? saved.education
+          : [];
 
-        const education = educationRows.map(
-          (qualification) => {
-            const existing =
-              savedEducation.find(
-                (item) =>
-                  item.qualification ===
-                  qualification
-              );
+        const education = educationRows.map((qualification) => {
+          const existing = savedEducation.find(
+            (item) => item.qualification === qualification,
+          );
 
-            return {
-              qualification,
+          return {
+            qualification,
 
-              boardUniversity:
-                existing?.boardUniversity || "",
+            boardUniversity: existing?.boardUniversity || "",
 
-              passingYear:
-                existing?.passingYear || "",
+            passingYear: existing?.passingYear || "",
 
-              status:
-                existing?.status || "",
+            rollNumber: existing?.rollNumber || "",
 
-              marks:
-                existing?.marks || "",
+            marks: existing?.marks || "",
 
-              percentage:
-                existing?.percentage || "",
-            };
-          }
-        );
+            percentage: existing?.percentage || "",
+          };
+        });
 
         /*
         |--------------------------------------------------------------------------
@@ -255,42 +236,28 @@ export default function QualificationDetails() {
 
           otherDetails: {
             domicileCertificateNumber:
-              saved.otherDetails
-                ?.domicileCertificateNumber || "",
+              saved.otherDetails?.domicileCertificateNumber || "",
 
             casteCertificateNumber:
-              saved.otherDetails
-                ?.casteCertificateNumber || "",
+              saved.otherDetails?.casteCertificateNumber || "",
 
             disabilityDetailsNumber:
-              saved.otherDetails
-                ?.disabilityDetailsNumber || "",
+              saved.otherDetails?.disabilityDetailsNumber || "",
 
             employmentDetailsNumber:
-              saved.otherDetails
-                ?.employmentDetailsNumber || "",
+              saved.otherDetails?.employmentDetailsNumber || "",
           },
 
           examDetails: {
-            postPreference:
-              saved.examDetails
-                ?.postPreference || "",
+            postPreference: saved.examDetails?.postPreference || "",
 
-            examCentrePreference:
-              saved.examDetails
-                ?.examCentrePreference || "",
+            examCentrePreference: saved.examDetails?.examCentrePreference || "",
           },
         });
       } catch (error) {
-        console.error(
-          "Fetch qualification details error:",
-          error
-        );
+        console.error("Fetch qualification details error:", error);
 
-        setError(
-          error.message ||
-            "Unable to load qualification details."
-        );
+        setError(error.message || "Unable to load qualification details.");
       } finally {
         setLoading(false);
       }
@@ -305,15 +272,9 @@ export default function QualificationDetails() {
   |--------------------------------------------------------------------------
   */
 
-  const handleEducationChange = (
-    index,
-    field,
-    value
-  ) => {
+  const handleEducationChange = (index, field, value) => {
     setFormData((prev) => {
-      const education = [
-        ...prev.education,
-      ];
+      const education = [...prev.education];
 
       education[index] = {
         ...education[index],
@@ -393,9 +354,7 @@ export default function QualificationDetails() {
     */
 
     if (!userId) {
-      setError(
-        "User registration information not found. Please login again."
-      );
+      setError("User registration information not found. Please login again.");
 
       return;
     }
@@ -406,12 +365,8 @@ export default function QualificationDetails() {
     |--------------------------------------------------------------------------
     */
 
-    if (
-      !formData.examDetails.postPreference
-    ) {
-      setError(
-        "Please select your post preference."
-      );
+    if (!formData.examDetails.postPreference) {
+      setError("Please select your post preference.");
 
       return;
     }
@@ -422,13 +377,8 @@ export default function QualificationDetails() {
     |--------------------------------------------------------------------------
     */
 
-    if (
-      !formData.examDetails
-        .examCentrePreference
-    ) {
-      setError(
-        "Please select your exam centre preference."
-      );
+    if (!formData.examDetails.examCentrePreference) {
+      setError("Please select your exam centre preference.");
 
       return;
     }
@@ -455,25 +405,20 @@ export default function QualificationDetails() {
           body: JSON.stringify({
             userId,
 
-            education:
-              formData.education,
+            education: formData.education,
 
-            otherDetails:
-              formData.otherDetails,
+            otherDetails: formData.otherDetails,
 
-            examDetails:
-              formData.examDetails,
+            examDetails: formData.examDetails,
           }),
-        }
+        },
       );
 
-      const data =
-        await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data.message ||
-            "Unable to save qualification details."
+          data.message || "Unable to save qualification details.",
         );
       }
 
@@ -483,9 +428,7 @@ export default function QualificationDetails() {
       |--------------------------------------------------------------------------
       */
 
-      setSuccess(
-        "Qualification details saved successfully."
-      );
+      setSuccess("Qualification details saved successfully.");
 
       /*
       |--------------------------------------------------------------------------
@@ -493,10 +436,7 @@ export default function QualificationDetails() {
       |--------------------------------------------------------------------------
       */
 
-      localStorage.setItem(
-        "userId",
-        userId
-      );
+      localStorage.setItem("userId", userId);
 
       /*
       |--------------------------------------------------------------------------
@@ -505,25 +445,16 @@ export default function QualificationDetails() {
       */
 
       setTimeout(() => {
-        navigate(
-          "/documents-upload",
-          {
-            state: {
-              userId,
-            },
-          }
-        );
+        navigate("/documents-upload", {
+          state: {
+            userId,
+          },
+        });
       }, 800);
     } catch (error) {
-      console.error(
-        "Save qualification details error:",
-        error
-      );
+      console.error("Save qualification details error:", error);
 
-      setError(
-        error.message ||
-          "Unable to save qualification details."
-      );
+      setError(error.message || "Unable to save qualification details.");
     } finally {
       setSaving(false);
     }
@@ -556,13 +487,10 @@ export default function QualificationDetails() {
   return (
     <div className="min-h-screen bg-gray-100 px-4 py-8">
       <div className="mx-auto w-full max-w-[1000px]">
-
         {/* Header */}
 
         <div className="rounded-t-2xl bg-[#ab183d] px-6 py-5 text-white">
-          <h1 className="text-xl font-bold">
-            Qualification & Exam Details
-          </h1>
+          <h1 className="text-xl font-bold">Qualification & Exam Details</h1>
 
           <p className="mt-1 text-sm text-white/80">
             Enter your educational and examination details
@@ -572,7 +500,6 @@ export default function QualificationDetails() {
         {/* Application Steps */}
 
         <div className="grid grid-cols-2 gap-3 bg-white px-6 pt-6 md:grid-cols-4">
-
           {/* Step 1 */}
 
           <Link
@@ -580,25 +507,17 @@ export default function QualificationDetails() {
             state={{ userId }}
             className="rounded-lg bg-green-600 px-3 py-3 text-center text-white shadow-sm transition hover:bg-green-700"
           >
-            <div className="text-sm font-bold">
-              Step 1
-            </div>
+            <div className="text-sm font-bold">Step 1</div>
 
-            <div className="mt-1 text-xs">
-              Personal
-            </div>
+            <div className="mt-1 text-xs">Personal</div>
           </Link>
 
           {/* Step 2 */}
 
           <div className="rounded-lg bg-[#ab183d] px-3 py-3 text-center text-white shadow-sm">
-            <div className="text-sm font-bold">
-              Step 2
-            </div>
+            <div className="text-sm font-bold">Step 2</div>
 
-            <div className="mt-1 text-xs">
-              Qualification
-            </div>
+            <div className="mt-1 text-xs">Qualification</div>
           </div>
 
           {/* Step 3 */}
@@ -608,13 +527,9 @@ export default function QualificationDetails() {
             state={{ userId }}
             className="rounded-lg border border-gray-300 bg-gray-100 px-3 py-3 text-center text-gray-600 transition hover:bg-gray-200"
           >
-            <div className="text-sm font-bold">
-              Step 3
-            </div>
+            <div className="text-sm font-bold">Step 3</div>
 
-            <div className="mt-1 text-xs">
-              Documents
-            </div>
+            <div className="mt-1 text-xs">Documents</div>
           </Link>
 
           {/* Step 4 */}
@@ -624,44 +539,29 @@ export default function QualificationDetails() {
             state={{ userId }}
             className="rounded-lg border border-gray-300 bg-gray-100 px-3 py-3 text-center text-gray-600 transition hover:bg-gray-200"
           >
-            <div className="text-sm font-bold">
-              Step 4
-            </div>
+            <div className="text-sm font-bold">Step 4</div>
 
-            <div className="mt-1 text-xs">
-              Fee Details
-            </div>
+            <div className="mt-1 text-xs">Fee Details</div>
           </Link>
-
         </div>
 
         {/* Main Form */}
 
         <div className="rounded-b-2xl bg-white p-6 shadow-lg">
-
-          <form
-            onSubmit={handleSubmit}
-            className="space-y-8"
-          >
-
+          <form onSubmit={handleSubmit} className="space-y-8">
             {/* =====================================================
                 EDUCATIONAL QUALIFICATION
             ====================================================== */}
 
             <div>
-
               <h2 className="rounded-t-md bg-[#ab183d] px-4 py-3 text-lg font-semibold text-white">
                 Educational Qualification
               </h2>
 
               <div className="overflow-x-auto border border-gray-300">
-
                 <table className="w-full min-w-[1000px] border-collapse">
-
                   <thead>
-
                     <tr className="bg-gray-100">
-
                       <th className="border border-gray-300 px-3 py-3 text-left">
                         Qualification
                       </th>
@@ -675,7 +575,7 @@ export default function QualificationDetails() {
                       </th>
 
                       <th className="border border-gray-300 px-3 py-3 text-left">
-                        Status
+                        Roll Number
                       </th>
 
                       <th className="border border-gray-300 px-3 py-3 text-left">
@@ -685,180 +585,119 @@ export default function QualificationDetails() {
                       <th className="border border-gray-300 px-3 py-3 text-left">
                         Percentage
                       </th>
-
                     </tr>
-
                   </thead>
 
                   <tbody>
+                    {formData.education.map((row, index) => (
+                      <tr key={row.qualification}>
+                        {/* Qualification */}
 
-                    {formData.education.map(
-                      (row, index) => (
-                        <tr
-                          key={row.qualification}
-                        >
+                        <td className="border border-gray-300 bg-gray-50 px-3 py-2 font-medium">
+                          {row.qualification}
+                        </td>
 
-                          {/* Qualification */}
+                        {/* Board / University */}
 
-                          <td className="border border-gray-300 bg-gray-50 px-3 py-2 font-medium">
-                            {row.qualification}
-                          </td>
+                        <td className="border border-gray-300 px-2 py-2">
+                          <input
+                            type="text"
+                            value={row.boardUniversity}
+                            onChange={(e) =>
+                              handleEducationChange(
+                                index,
+                                "boardUniversity",
+                                e.target.value,
+                              )
+                            }
+                            placeholder="Board / University"
+                            className="w-full rounded-md border border-gray-300 px-3 py-2 outline-none focus:border-[#ab183d] focus:ring-1 focus:ring-[#ab183d]"
+                          />
+                        </td>
 
-                          {/* Board / University */}
+                        {/* Passing Year */}
 
-                          <td className="border border-gray-300 px-2 py-2">
+                        <td className="border border-gray-300 px-2 py-2">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={4}
+                            value={row.passingYear}
+                            onChange={(e) =>
+                              handleEducationChange(
+                                index,
+                                "passingYear",
+                                e.target.value.replace(/\D/g, "").slice(0, 4),
+                              )
+                            }
+                            placeholder="YYYY"
+                            className="w-full rounded-md border border-gray-300 px-3 py-2 outline-none focus:border-[#ab183d] focus:ring-1 focus:ring-[#ab183d]"
+                          />
+                        </td>
 
-                            <input
-                              type="text"
-                              value={
-                                row.boardUniversity
-                              }
-                              onChange={(e) =>
-                                handleEducationChange(
-                                  index,
-                                  "boardUniversity",
-                                  e.target.value
-                                )
-                              }
-                              placeholder="Board / University"
-                              className="w-full rounded-md border border-gray-300 px-3 py-2 outline-none focus:border-[#ab183d] focus:ring-1 focus:ring-[#ab183d]"
-                            />
+                        {/* Status */}
 
-                          </td>
+                        {/* Roll Number */}
 
-                          {/* Passing Year */}
+                        <td className="border border-gray-300 px-2 py-2">
+                          <input
+                            type="text"
+                            value={row.rollNumber}
+                            onChange={(e) =>
+                              handleEducationChange(
+                                index,
+                                "rollNumber",
+                                e.target.value,
+                              )
+                            }
+                            placeholder="Roll Number"
+                            className="w-full rounded-md border border-gray-300 px-3 py-2 outline-none focus:border-[#ab183d] focus:ring-1 focus:ring-[#ab183d]"
+                          />
+                        </td>
+                        {/* Marks */}
 
-                          <td className="border border-gray-300 px-2 py-2">
+                        <td className="border border-gray-300 px-2 py-2">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={row.marks}
+                            onChange={(e) =>
+                              handleEducationChange(
+                                index,
+                                "marks",
+                                e.target.value.replace(/\D/g, ""),
+                              )
+                            }
+                            placeholder="Marks"
+                            className="w-full rounded-md border border-gray-300 px-3 py-2 outline-none focus:border-[#ab183d] focus:ring-1 focus:ring-[#ab183d]"
+                          />
+                        </td>
 
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              maxLength={4}
-                              value={
-                                row.passingYear
-                              }
-                              onChange={(e) =>
-                                handleEducationChange(
-                                  index,
-                                  "passingYear",
-                                  e.target.value
-                                    .replace(
-                                      /\D/g,
-                                      ""
-                                    )
-                                    .slice(
-                                      0,
-                                      4
-                                    )
-                                )
-                              }
-                              placeholder="YYYY"
-                              className="w-full rounded-md border border-gray-300 px-3 py-2 outline-none focus:border-[#ab183d] focus:ring-1 focus:ring-[#ab183d]"
-                            />
+                        {/* Percentage */}
 
-                          </td>
-
-                          {/* Status */}
-
-                          <td className="border border-gray-300 px-2 py-2">
-
-                            <select
-                              value={
-                                row.status
-                              }
-                              onChange={(e) =>
-                                handleEducationChange(
-                                  index,
-                                  "status",
-                                  e.target.value
-                                )
-                              }
-                              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none focus:border-[#ab183d] focus:ring-1 focus:ring-[#ab183d]"
-                            >
-
-                              <option value="">
-                                Select Status
-                              </option>
-
-                              <option value="Passed">
-                                Passed
-                              </option>
-
-                              <option value="Appearing">
-                                Appearing
-                              </option>
-
-                            </select>
-
-                          </td>
-
-                          {/* Marks */}
-
-                          <td className="border border-gray-300 px-2 py-2">
-
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              value={
-                                row.marks
-                              }
-                              onChange={(e) =>
-                                handleEducationChange(
-                                  index,
-                                  "marks",
-                                  e.target.value.replace(
-                                    /\D/g,
-                                    ""
-                                  )
-                                )
-                              }
-                              placeholder="Marks"
-                              className="w-full rounded-md border border-gray-300 px-3 py-2 outline-none focus:border-[#ab183d] focus:ring-1 focus:ring-[#ab183d]"
-                            />
-
-                          </td>
-
-                          {/* Percentage */}
-
-                          <td className="border border-gray-300 px-2 py-2">
-
-                            <input
-                              type="text"
-                              inputMode="decimal"
-                              value={
-                                row.percentage
-                              }
-                              onChange={(e) =>
-                                handleEducationChange(
-                                  index,
-                                  "percentage",
-                                  e.target.value
-                                    .replace(
-                                      /[^0-9.]/g,
-                                      ""
-                                    )
-                                    .replace(
-                                      /(\..*)\./g,
-                                      "$1"
-                                    )
-                                )
-                              }
-                              placeholder="Percentage"
-                              className="w-full rounded-md border border-gray-300 px-3 py-2 outline-none focus:border-[#ab183d] focus:ring-1 focus:ring-[#ab183d]"
-                            />
-
-                          </td>
-
-                        </tr>
-                      )
-                    )}
-
+                        <td className="border border-gray-300 px-2 py-2">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={row.percentage}
+                            onChange={(e) =>
+                              handleEducationChange(
+                                index,
+                                "percentage",
+                                e.target.value
+                                  .replace(/[^0-9.]/g, "")
+                                  .replace(/(\..*)\./g, "$1"),
+                              )
+                            }
+                            placeholder="Percentage"
+                            className="w-full rounded-md border border-gray-300 px-3 py-2 outline-none focus:border-[#ab183d] focus:ring-1 focus:ring-[#ab183d]"
+                          />
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
-
                 </table>
-
               </div>
-
             </div>
 
             {/* =====================================================
@@ -866,17 +705,14 @@ export default function QualificationDetails() {
             ====================================================== */}
 
             <div>
-
               <h2 className="rounded-t-md bg-[#ab183d] px-4 py-3 text-lg font-semibold text-white">
                 Other Details
               </h2>
 
               <div className="grid grid-cols-1 gap-5 border border-gray-300 bg-white p-5 md:grid-cols-2">
-
                 {/* Domicile */}
 
                 <div>
-
                   <label className="mb-2 block text-sm font-semibold text-gray-700">
                     Domicile Certificate Number
                   </label>
@@ -884,23 +720,16 @@ export default function QualificationDetails() {
                   <input
                     type="text"
                     name="domicileCertificateNumber"
-                    value={
-                      formData.otherDetails
-                        .domicileCertificateNumber
-                    }
-                    onChange={
-                      handleOtherDetailsChange
-                    }
+                    value={formData.otherDetails.domicileCertificateNumber}
+                    onChange={handleOtherDetailsChange}
                     placeholder="Enter Domicile Certificate Number"
                     className="w-full rounded-md border border-gray-300 px-3 py-3 outline-none focus:border-[#ab183d] focus:ring-1 focus:ring-[#ab183d]"
                   />
-
                 </div>
 
                 {/* Caste */}
 
                 <div>
-
                   <label className="mb-2 block text-sm font-semibold text-gray-700">
                     Caste Certificate Number
                   </label>
@@ -908,23 +737,16 @@ export default function QualificationDetails() {
                   <input
                     type="text"
                     name="casteCertificateNumber"
-                    value={
-                      formData.otherDetails
-                        .casteCertificateNumber
-                    }
-                    onChange={
-                      handleOtherDetailsChange
-                    }
+                    value={formData.otherDetails.casteCertificateNumber}
+                    onChange={handleOtherDetailsChange}
                     placeholder="Enter Caste Certificate Number"
                     className="w-full rounded-md border border-gray-300 px-3 py-3 outline-none focus:border-[#ab183d] focus:ring-1 focus:ring-[#ab183d]"
                   />
-
                 </div>
 
                 {/* Disability */}
 
                 <div>
-
                   <label className="mb-2 block text-sm font-semibold text-gray-700">
                     Disability Details Number
                   </label>
@@ -932,23 +754,16 @@ export default function QualificationDetails() {
                   <input
                     type="text"
                     name="disabilityDetailsNumber"
-                    value={
-                      formData.otherDetails
-                        .disabilityDetailsNumber
-                    }
-                    onChange={
-                      handleOtherDetailsChange
-                    }
+                    value={formData.otherDetails.disabilityDetailsNumber}
+                    onChange={handleOtherDetailsChange}
                     placeholder="Enter Disability Details Number"
                     className="w-full rounded-md border border-gray-300 px-3 py-3 outline-none focus:border-[#ab183d] focus:ring-1 focus:ring-[#ab183d]"
                   />
-
                 </div>
 
                 {/* Employment */}
 
                 <div>
-
                   <label className="mb-2 block text-sm font-semibold text-gray-700">
                     Employment Details Number
                   </label>
@@ -956,21 +771,13 @@ export default function QualificationDetails() {
                   <input
                     type="text"
                     name="employmentDetailsNumber"
-                    value={
-                      formData.otherDetails
-                        .employmentDetailsNumber
-                    }
-                    onChange={
-                      handleOtherDetailsChange
-                    }
+                    value={formData.otherDetails.employmentDetailsNumber}
+                    onChange={handleOtherDetailsChange}
                     placeholder="Enter Employment Details Number"
                     className="w-full rounded-md border border-gray-300 px-3 py-3 outline-none focus:border-[#ab183d] focus:ring-1 focus:ring-[#ab183d]"
                   />
-
                 </div>
-
               </div>
-
             </div>
 
             {/* =====================================================
@@ -978,39 +785,26 @@ export default function QualificationDetails() {
             ====================================================== */}
 
             <div>
-
               <h2 className="rounded-t-md bg-[#ab183d] px-4 py-3 text-lg font-semibold text-white">
                 Exam Details
               </h2>
 
               <div className="grid grid-cols-1 gap-5 border border-gray-300 bg-white p-5 md:grid-cols-2">
-
                 {/* Post Preference */}
 
                 <div>
-
                   <label className="mb-2 block text-sm font-semibold text-gray-700">
                     Post Preference
-                    <span className="ml-1 text-red-600">
-                      *
-                    </span>
+                    <span className="ml-1 text-red-600">*</span>
                   </label>
 
                   <select
                     name="postPreference"
-                    value={
-                      formData.examDetails
-                        .postPreference
-                    }
-                    onChange={
-                      handleExamDetailsChange
-                    }
+                    value={formData.examDetails.postPreference}
+                    onChange={handleExamDetailsChange}
                     className="w-full rounded-md border border-gray-300 bg-white px-3 py-3 outline-none focus:border-[#ab183d] focus:ring-1 focus:ring-[#ab183d]"
                   >
-
-                    <option value="">
-                      Select Post Preference
-                    </option>
+                    <option value="">Select Post Preference</option>
 
                     <option value="Assistant Section Officer (ASO)">
                       Assistant Section Officer (ASO)
@@ -1027,55 +821,33 @@ export default function QualificationDetails() {
                     <option value="Multi Tasking Staff (MTS)">
                       Multi Tasking Staff (MTS)
                     </option>
-
                   </select>
-
                 </div>
 
                 {/* Exam Centre */}
 
                 <div>
-
                   <label className="mb-2 block text-sm font-semibold text-gray-700">
                     Exam Centre Preference
-                    <span className="ml-1 text-red-600">
-                      *
-                    </span>
+                    <span className="ml-1 text-red-600">*</span>
                   </label>
 
                   <select
                     name="examCentrePreference"
-                    value={
-                      formData.examDetails
-                        .examCentrePreference
-                    }
-                    onChange={
-                      handleExamDetailsChange
-                    }
+                    value={formData.examDetails.examCentrePreference}
+                    onChange={handleExamDetailsChange}
                     className="w-full rounded-md border border-gray-300 bg-white px-3 py-3 outline-none focus:border-[#ab183d] focus:ring-1 focus:ring-[#ab183d]"
                   >
+                    <option value="">Select Exam Centre</option>
 
-                    <option value="">
-                      Select Exam Centre
-                    </option>
-
-                    {examCenters.map(
-                      (city) => (
-                        <option
-                          key={city}
-                          value={city}
-                        >
-                          {city}
-                        </option>
-                      )
-                    )}
-
+                    {examCenters.map((city) => (
+                      <option key={city} value={city}>
+                        {city}
+                      </option>
+                    ))}
                   </select>
-
                 </div>
-
               </div>
-
             </div>
 
             {/* =====================================================
@@ -1099,7 +871,6 @@ export default function QualificationDetails() {
             ====================================================== */}
 
             <div className="mt-8 flex flex-col gap-3 border-t border-gray-200 pt-5 sm:flex-row sm:justify-between">
-
               {/* Back */}
 
               <Link
@@ -1117,17 +888,11 @@ export default function QualificationDetails() {
                 disabled={saving}
                 className="rounded-lg bg-[#ab183d] px-7 py-3 text-center font-semibold text-white transition hover:bg-[#921532] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {saving
-                  ? "Saving..."
-                  : "Next →"}
+                {saving ? "Saving..." : "Next →"}
               </button>
-
             </div>
-
           </form>
-
         </div>
-
       </div>
     </div>
   );

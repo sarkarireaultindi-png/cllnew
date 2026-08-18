@@ -20,6 +20,39 @@
   }
 }
 
+/* =========================================================
+   NEWS AUTO SCROLL - BOTTOM TO TOP
+========================================================= */
+
+.news-scroll {
+  animation: newsScroll 18s linear infinite;
+}
+
+.news-scroll-slow {
+  animation: newsScroll 24s linear infinite;
+}
+
+/* Pause when mouse is over the news */
+.news-paused {
+  animation-play-state: paused !important;
+}
+
+
+/* =========================================================
+   BOTTOM TO TOP
+========================================================= */
+
+@keyframes newsScroll {
+  0% {
+    transform: translateY(0);
+  }
+
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+
 .marquee-content:hover {
   animation-play-state: paused;
 }

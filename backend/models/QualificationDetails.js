@@ -5,6 +5,7 @@ const educationSchema = new mongoose.Schema(
     qualification: {
       type: String,
       required: true,
+      trim: true,
     },
 
     boardUniversity: {
@@ -16,12 +17,13 @@ const educationSchema = new mongoose.Schema(
     passingYear: {
       type: String,
       trim: true,
+      match: [/^\d{4}$/, "Passing year must be a 4-digit year"],
       default: "",
     },
 
-    status: {
+    rollNumber: {
       type: String,
-      enum: ["", "Passed", "Appearing"],
+      trim: true,
       default: "",
     },
 

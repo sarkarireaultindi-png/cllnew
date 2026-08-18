@@ -16,7 +16,7 @@ import FooterBottom from "./components/FooterBottom"
 export default function Home() {
   return (
     <>
-      <Header />
+      
       <Header2 />  
         <Slider />  
         

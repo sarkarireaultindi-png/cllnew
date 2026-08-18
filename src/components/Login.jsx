@@ -595,7 +595,7 @@ setTimeout(() => {
       userId: loggedInUserId,
     },
   });
-}, 700);
+}, 2000);
 
     } catch (error) {
       console.error(

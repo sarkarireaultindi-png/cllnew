@@ -1298,45 +1298,33 @@ export default function PersonalDetailsForm() {
                   </label>
 
                   <div className="relative">
+  <select
+    name="maritalStatus"
+    value={formData.maritalStatus}
+    onChange={handleChange}
+    className={selectClass}
+  >
+    <option value="">
+      Select Marital Status
+    </option>
 
-                    <FaHeart className="absolute left-3 top-1/2 z-10 -translate-y-1/2 text-gray-400" />
+    <option value="Single">
+      Single
+    </option>
 
-                    <select
-                      name="maritalStatus"
-                      value={
-                        formData.maritalStatus
-                      }
-                      onChange={
-                        handleChange
-                      }
-                      className={
-                        selectClass
-                      }
-                    >
+    <option value="Married">
+      Married
+    </option>
 
-                      <option value="">
-                        Select Marital Status
-                      </option>
+    <option value="Divorced">
+      Divorced
+    </option>
 
-                      <option value="Single">
-                        Single
-                      </option>
-
-                      <option value="Married">
-                        Married
-                      </option>
-
-                      <option value="Divorced">
-                        Divorced
-                      </option>
-
-                      <option value="Widowed">
-                        Widowed
-                      </option>
-
-                    </select>
-
-                  </div>
+    <option value="Widowed">
+      Widowed
+    </option>
+  </select>
+</div>
 
                 </div>
 
