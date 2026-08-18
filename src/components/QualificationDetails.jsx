@@ -443,7 +443,7 @@ export default function QualificationDetails() {
       setSaving(true);
 
       const response = await fetch(
-        "https://cllnew.onrender.com/qualification-details",
+        "https://cllnew.onrender.com/api/qualification-details",
         {
           method: "POST",
 

@@ -9,6 +9,12 @@ export default function DocumentsUpload() {
     location.state?.userId || localStorage.getItem("userId");
 
   // ============================================================
+  // API URL
+  // ============================================================
+
+  const API_BASE_URL = "https://cllnew.onrender.com";
+
+  // ============================================================
   // DOCUMENT CONFIGURATION
   // ============================================================
 
@@ -180,6 +186,37 @@ export default function DocumentsUpload() {
   const [success, setSuccess] = useState("");
 
   // ============================================================
+  // LOCAL PREVIEW URLS
+  // ============================================================
+
+  const [localPreviewUrls, setLocalPreviewUrls] =
+    useState({});
+
+  // ============================================================
+  // CREATE LOCAL PREVIEW URL
+  // ============================================================
+
+  useEffect(() => {
+    const urls = {};
+
+    Object.keys(files).forEach((documentName) => {
+      const file = files[documentName];
+
+      if (file instanceof File) {
+        urls[documentName] = URL.createObjectURL(file);
+      }
+    });
+
+    setLocalPreviewUrls(urls);
+
+    return () => {
+      Object.values(urls).forEach((url) => {
+        URL.revokeObjectURL(url);
+      });
+    };
+  }, [files]);
+
+  // ============================================================
   // FETCH EXISTING DOCUMENTS
   // ============================================================
 
@@ -200,7 +237,7 @@ export default function DocumentsUpload() {
         setError("");
 
         const response = await fetch(
-          `https://cllnew.onrender.com/document-upload/${userId}`
+          `${API_BASE_URL}/api/document-upload/${userId}`
         );
 
         let data = {};
@@ -225,73 +262,59 @@ export default function DocumentsUpload() {
           data
         );
 
-        // ======================================================
-        // NORMALIZE API RESPONSE
-        // ======================================================
+        let documentsData =
+          data.documents || {};
 
-        let documentsData = data.documents || {};
-
-        /*
-         * Handles response such as:
-         *
-         * {
-         *   documents: {
-         *     photo: {...},
-         *     signature: {...}
-         *   }
-         * }
-         *
-         * OR:
-         *
-         * {
-         *   documents: {
-         *     documents: {
-         *       photo: {...}
-         *     }
-         *   }
-         * }
-         */
+        // ======================================================
+        // HANDLE NESTED DOCUMENT RESPONSE
+        // ======================================================
 
         if (
           documentsData &&
           documentsData.documents &&
-          typeof documentsData.documents === "object" &&
-          !Array.isArray(documentsData.documents)
+          typeof documentsData.documents ===
+            "object" &&
+          !Array.isArray(
+            documentsData.documents
+          )
         ) {
           documentsData =
             documentsData.documents;
         }
 
-        /*
-         * If backend returns an array:
-         *
-         * [
-         *   {
-         *     name: "photo",
-         *     filename: "abc.jpg"
-         *   }
-         * ]
-         */
+        // ======================================================
+        // HANDLE ARRAY RESPONSE
+        // ======================================================
 
-        if (Array.isArray(documentsData)) {
+        if (
+          Array.isArray(
+            documentsData
+          )
+        ) {
           const normalized = {};
 
-          documentsData.forEach((item) => {
-            if (!item) {
-              return;
+          documentsData.forEach(
+            (item) => {
+              if (!item) {
+                return;
+              }
+
+              const documentName =
+                item.name ||
+                item.documentName ||
+                item.fieldname ||
+                item.fieldName;
+
+              if (documentName) {
+                normalized[
+                  documentName
+                ] = item;
+              }
             }
+          );
 
-            const documentName =
-              item.name ||
-              item.documentName ||
-              item.fieldname;
-
-            if (documentName) {
-              normalized[documentName] = item;
-            }
-          });
-
-          documentsData = normalized;
+          documentsData =
+            normalized;
         }
 
         console.log(
@@ -337,14 +360,18 @@ export default function DocumentsUpload() {
       return `${kb.toFixed(2)} KB`;
     }
 
-    return `${(kb / 1024).toFixed(2)} MB`;
+    return `${(
+      kb / 1024
+    ).toFixed(2)} MB`;
   };
 
   // ============================================================
   // GET FILE EXTENSION
   // ============================================================
 
-  const getFileExtension = (fileName) => {
+  const getFileExtension = (
+    fileName
+  ) => {
     if (!fileName) {
       return "";
     }
@@ -362,10 +389,257 @@ export default function DocumentsUpload() {
   };
 
   // ============================================================
+  // GET FILE TYPE
+  // ============================================================
+
+  const getFileType = (file) => {
+    if (!file) {
+      return "";
+    }
+
+    const mimeType =
+      file.mimetype ||
+      file.mimeType ||
+      file.type ||
+      "";
+
+    if (
+      mimeType ===
+      "application/pdf"
+    ) {
+      return "pdf";
+    }
+
+    if (
+      mimeType.startsWith(
+        "image/"
+      )
+    ) {
+      return "image";
+    }
+
+    const fileName =
+      file.originalName ||
+      file.filename ||
+      file.name ||
+      "";
+
+    const extension =
+      getFileExtension(
+        fileName
+      );
+
+    if (
+      [
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".webp",
+        ".gif",
+      ].includes(extension)
+    ) {
+      return "image";
+    }
+
+    if (
+      extension === ".pdf"
+    ) {
+      return "pdf";
+    }
+
+    return "";
+  };
+
+  // ============================================================
+  // GET CLOUD FILE URL
+  // ============================================================
+
+  const getFileUrl = (file) => {
+    if (!file) {
+      return "";
+    }
+
+    /*
+     * Cloudinary normally returns:
+     *
+     * secure_url
+     *
+     * Example:
+     * https://res.cloudinary.com/xxxx/image/upload/xxxx.jpg
+     */
+
+    if (
+      typeof file === "string" &&
+      file.startsWith("http")
+    ) {
+      return file;
+    }
+
+    if (
+      file.secure_url &&
+      typeof file.secure_url ===
+        "string"
+    ) {
+      return file.secure_url;
+    }
+
+    if (
+      file.cloudinaryUrl &&
+      typeof file.cloudinaryUrl ===
+        "string"
+    ) {
+      return file.cloudinaryUrl;
+    }
+
+    if (
+      file.cloudinaryURL &&
+      typeof file.cloudinaryURL ===
+        "string"
+    ) {
+      return file.cloudinaryURL;
+    }
+
+    if (
+      file.fileUrl &&
+      typeof file.fileUrl ===
+        "string"
+    ) {
+      return file.fileUrl;
+    }
+
+    if (
+      file.fileURL &&
+      typeof file.fileURL ===
+        "string"
+    ) {
+      return file.fileURL;
+    }
+
+    if (
+      file.url &&
+      typeof file.url ===
+        "string"
+    ) {
+      return file.url;
+    }
+
+    /*
+     * Cloudinary may sometimes be returned
+     * inside a nested object.
+     */
+
+    if (
+      file.cloudinary &&
+      typeof file.cloudinary ===
+        "object"
+    ) {
+      if (
+        file.cloudinary.secure_url
+      ) {
+        return file.cloudinary
+          .secure_url;
+      }
+
+      if (
+        file.cloudinary.url
+      ) {
+        return file.cloudinary.url;
+      }
+    }
+
+    /*
+     * Fallback for old backend
+     * path-based files.
+     */
+
+    if (
+      file.path &&
+      typeof file.path ===
+        "string"
+    ) {
+      let cleanPath =
+        file.path.replace(
+          /\\/g,
+          "/"
+        );
+
+      /*
+       * If path is already a complete URL
+       */
+
+      if (
+        cleanPath.startsWith(
+          "http://"
+        ) ||
+        cleanPath.startsWith(
+          "https://"
+        )
+      ) {
+        return cleanPath;
+      }
+
+      /*
+       * Avoid duplicate /api
+       */
+
+      if (
+        cleanPath.startsWith(
+          "/api/"
+        )
+      ) {
+        return `${API_BASE_URL}${cleanPath}`;
+      }
+
+      if (
+        cleanPath.startsWith("/")
+      ) {
+        return `${API_BASE_URL}${cleanPath}`;
+      }
+
+      return `${API_BASE_URL}/api/${cleanPath}`;
+    }
+
+    return "";
+  };
+
+  // ============================================================
+  // CHECK DATABASE DOCUMENT
+  // ============================================================
+
+  const hasUploadedDocument = (
+    documentName
+  ) => {
+    const document =
+      uploadedDocuments?.[
+        documentName
+      ];
+
+    if (!document) {
+      return false;
+    }
+
+    const fileUrl =
+      getFileUrl(document);
+
+    return Boolean(
+      fileUrl ||
+      document.filename ||
+      document.originalName ||
+      document.name ||
+      document.path ||
+      document.public_id ||
+      document.publicId
+    );
+  };
+
+  // ============================================================
   // VALIDATE FILE
   // ============================================================
 
-  const validateFile = (file, document) => {
+  const validateFile = (
+    file,
+    document
+  ) => {
     if (!file) {
       return `Please upload ${document.label}.`;
     }
@@ -380,7 +654,9 @@ export default function DocumentsUpload() {
     // MAXIMUM SIZE
     // ==========================================================
 
-    if (file.size > maxBytes) {
+    if (
+      file.size > maxBytes
+    ) {
       return (
         `You are uploading more than ${document.maxSize} KB. ` +
         `Your selected file is ${formatFileSize(
@@ -394,7 +670,9 @@ export default function DocumentsUpload() {
     // MINIMUM SIZE
     // ==========================================================
 
-    if (file.size < minBytes) {
+    if (
+      file.size < minBytes
+    ) {
       return (
         `File size is too small. ` +
         `Your selected file is ${formatFileSize(
@@ -409,7 +687,9 @@ export default function DocumentsUpload() {
     // ==========================================================
 
     const extension =
-      getFileExtension(file.name);
+      getFileExtension(
+        file.name
+      );
 
     if (
       !document.allowedExtensions.includes(
@@ -446,35 +726,6 @@ export default function DocumentsUpload() {
   };
 
   // ============================================================
-  // CHECK IF DATABASE DOCUMENT EXISTS
-  // ============================================================
-
-  const hasUploadedDocument = (
-    documentName
-  ) => {
-    const document =
-      uploadedDocuments?.[documentName];
-
-    if (!document) {
-      return false;
-    }
-
-    /*
-     * Different backend implementations may return
-     * different properties.
-     *
-     * Any one of these means the document exists.
-     */
-
-    return Boolean(
-      document.filename ||
-      document.originalName ||
-      document.path ||
-      document.url
-    );
-  };
-
-  // ============================================================
   // FILE CHANGE
   // ============================================================
 
@@ -482,7 +733,8 @@ export default function DocumentsUpload() {
     e,
     document
   ) => {
-    const input = e.target;
+    const input =
+      e.target;
 
     const file =
       input.files &&
@@ -493,17 +745,20 @@ export default function DocumentsUpload() {
     setError("");
     setSuccess("");
 
-    setFileErrors((previous) => ({
-      ...previous,
-      [document.name]: "",
-    }));
+    setFileErrors(
+      (previous) => ({
+        ...previous,
+        [document.name]:
+          "",
+      })
+    );
 
     if (!file) {
       return;
     }
 
     // ==========================================================
-    // VALIDATE NEW FILE
+    // VALIDATE
     // ==========================================================
 
     const validationError =
@@ -513,16 +768,21 @@ export default function DocumentsUpload() {
       );
 
     if (validationError) {
-      setFileErrors((previous) => ({
-        ...previous,
-        [document.name]:
-          validationError,
-      }));
+      setFileErrors(
+        (previous) => ({
+          ...previous,
+          [document.name]:
+            validationError,
+        })
+      );
 
-      setFiles((previous) => ({
-        ...previous,
-        [document.name]: null,
-      }));
+      setFiles(
+        (previous) => ({
+          ...previous,
+          [document.name]:
+            null,
+        })
+      );
 
       input.value = "";
 
@@ -530,32 +790,16 @@ export default function DocumentsUpload() {
     }
 
     // ==========================================================
-    // SAVE NEW FILE
+    // SAVE LOCAL FILE
     // ==========================================================
 
-    setFiles((previous) => ({
-      ...previous,
-      [document.name]: file,
-    }));
-
-    /*
-     * IMPORTANT:
-     *
-     * DO NOT DELETE OR SET uploadedDocuments[document.name]
-     * TO NULL HERE.
-     *
-     * Example:
-     *
-     * Existing DB:
-     *
-     * photo = cmd_img.jpeg
-     *
-     * User selects:
-     *
-     * signature = new-signature.jpg
-     *
-     * Photo must remain in uploadedDocuments.
-     */
+    setFiles(
+      (previous) => ({
+        ...previous,
+        [document.name]:
+          file,
+      })
+    );
 
     setSuccess(
       `✓ ${document.label} selected successfully. File size: ${formatFileSize(
@@ -575,21 +819,21 @@ export default function DocumentsUpload() {
     );
 
   // ============================================================
-  // CHECK REQUIRED DOCUMENT
+  // REQUIRED DOCUMENT COMPLETE
   // ============================================================
 
   const isRequiredDocumentComplete = (
     document
   ) => {
-    // New local file
     const localFile =
-      files[document.name] instanceof File;
+      files[
+        document.name
+      ] instanceof File;
 
     if (localFile) {
       return true;
     }
 
-    // Existing database file
     return hasUploadedDocument(
       document.name
     );
@@ -627,26 +871,18 @@ export default function DocumentsUpload() {
     let isValid = true;
 
     const newErrors = {
-      photo: "",
-      signature: "",
-      highSchoolCertificate: "",
-      seniorSecondaryCertificate: "",
-      graduationCertificate: "",
-      postGraduationDiplomaCertificate: "",
+      ...emptyErrors,
     };
-
-    // ==========================================================
-    // REQUIRED DOCUMENT VALIDATION
-    // ==========================================================
 
     requiredDocuments.forEach(
       (document) => {
         const localFile =
-          files[document.name];
+          files[
+            document.name
+          ];
 
         // ======================================================
-        // CASE 1:
-        // NEW FILE SELECTED
+        // NEW FILE
         // ======================================================
 
         if (
@@ -658,10 +894,13 @@ export default function DocumentsUpload() {
               document
             );
 
-          if (validationError) {
+          if (
+            validationError
+          ) {
             newErrors[
               document.name
-            ] = validationError;
+            ] =
+              validationError;
 
             isValid = false;
           }
@@ -670,8 +909,7 @@ export default function DocumentsUpload() {
         }
 
         // ======================================================
-        // CASE 2:
-        // EXISTING DATABASE FILE
+        // EXISTING CLOUD FILE
         // ======================================================
 
         const existingFile =
@@ -680,14 +918,8 @@ export default function DocumentsUpload() {
           ];
 
         const databaseFileExists =
-          Boolean(
-            existingFile &&
-            (
-              existingFile.filename ||
-              existingFile.originalName ||
-              existingFile.path ||
-              existingFile.url
-            )
+          hasUploadedDocument(
+            document.name
           );
 
         console.log(
@@ -696,11 +928,13 @@ export default function DocumentsUpload() {
         );
 
         console.log(
-          `${document.name} exists:`,
+          `${document.name} cloud/file exists:`,
           databaseFileExists
         );
 
-        if (databaseFileExists) {
+        if (
+          databaseFileExists
+        ) {
           newErrors[
             document.name
           ] = "";
@@ -709,8 +943,7 @@ export default function DocumentsUpload() {
         }
 
         // ======================================================
-        // CASE 3:
-        // MISSING REQUIRED DOCUMENT
+        // MISSING
         // ======================================================
 
         newErrors[
@@ -722,10 +955,7 @@ export default function DocumentsUpload() {
       }
     );
 
-    // ==========================================================
-    // OPTIONAL DOCUMENTS
-    // ==========================================================
-
+    // Optional documents
     newErrors.highSchoolCertificate =
       "";
 
@@ -738,29 +968,8 @@ export default function DocumentsUpload() {
     newErrors.postGraduationDiplomaCertificate =
       "";
 
-    setFileErrors(newErrors);
-
-    console.log(
-      "================ DOCUMENT VALIDATION ================"
-    );
-
-    console.log(
-      "Uploaded Documents:",
-      uploadedDocuments
-    );
-
-    console.log(
-      "Local Files:",
-      files
-    );
-
-    console.log(
-      "Validation Result:",
-      isValid
-    );
-
-    console.log(
-      "======================================================"
+    setFileErrors(
+      newErrors
     );
 
     return isValid;
@@ -770,16 +979,14 @@ export default function DocumentsUpload() {
   // SUBMIT
   // ============================================================
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (
+    e
+  ) => {
     e.preventDefault();
     e.stopPropagation();
 
     setError("");
     setSuccess("");
-
-    // ==========================================================
-    // USER ID CHECK
-    // ==========================================================
 
     if (!userId) {
       setError(
@@ -790,7 +997,7 @@ export default function DocumentsUpload() {
     }
 
     // ==========================================================
-    // VALIDATE DOCUMENTS
+    // VALIDATE
     // ==========================================================
 
     const validationPassed =
@@ -801,21 +1008,16 @@ export default function DocumentsUpload() {
     }
 
     // ==========================================================
-    // CALCULATE CURRENT REQUIRED STATUS
+    // CHECK CURRENT REQUIRED STATUS
     // ==========================================================
-
-    /*
-     * We calculate this directly instead of relying only
-     * on allRequiredDocumentsUploaded.
-     *
-     * This avoids stale React state issues.
-     */
 
     const requiredCompleteNow =
       requiredDocuments.every(
         (document) => {
           const localFile =
-            files[document.name] instanceof File;
+            files[
+              document.name
+            ] instanceof File;
 
           const existingFile =
             uploadedDocuments?.[
@@ -824,30 +1026,24 @@ export default function DocumentsUpload() {
 
           const databaseFile =
             Boolean(
-              existingFile &&
-              (
-                existingFile.filename ||
-                existingFile.originalName ||
-                existingFile.path ||
-                existingFile.url
+              localFile ||
+              hasUploadedDocument(
+                document.name
               )
             );
 
           return (
             localFile ||
-            databaseFile
+            databaseFile ||
+            Boolean(existingFile)
           );
         }
       );
 
-    console.log(
-      "Required documents complete:",
-      requiredCompleteNow
-    );
-
-    if (!requiredCompleteNow) {
+    if (
+      !requiredCompleteNow
+    ) {
       validateAllDocuments();
-
       return;
     }
 
@@ -858,11 +1054,13 @@ export default function DocumentsUpload() {
     const hasNewFiles =
       documents.some(
         (document) =>
-          files[document.name] instanceof File
+          files[
+            document.name
+          ] instanceof File
       );
 
     // ==========================================================
-    // NOTHING NEW TO UPLOAD
+    // NOTHING NEW
     // ==========================================================
 
     if (!hasNewFiles) {
@@ -876,18 +1074,21 @@ export default function DocumentsUpload() {
       );
 
       setTimeout(() => {
-        navigate("/fee-details", {
-          state: {
-            userId,
-          },
-        });
+        navigate(
+          "/fee-details",
+          {
+            state: {
+              userId,
+            },
+          }
+        );
       }, 700);
 
       return;
     }
 
     // ==========================================================
-    // UPLOAD NEW FILES
+    // UPLOAD
     // ==========================================================
 
     try {
@@ -901,14 +1102,12 @@ export default function DocumentsUpload() {
         userId
       );
 
-      // ========================================================
-      // APPEND ONLY NEW FILES
-      // ========================================================
-
       documents.forEach(
         (document) => {
           const file =
-            files[document.name];
+            files[
+              document.name
+            ];
 
           if (
             file instanceof File
@@ -928,7 +1127,7 @@ export default function DocumentsUpload() {
 
       const response =
         await fetch(
-          "https://cllnew.onrender.com/api/document-upload",
+          `${API_BASE_URL}/api/document-upload`,
           {
             method: "POST",
             body: formData,
@@ -951,7 +1150,9 @@ export default function DocumentsUpload() {
         data
       );
 
-      if (!response.ok) {
+      if (
+        !response.ok
+      ) {
         throw new Error(
           data.message ||
             "Unable to upload documents."
@@ -959,18 +1160,14 @@ export default function DocumentsUpload() {
       }
 
       // ========================================================
-      // MERGE API DOCUMENTS WITH EXISTING DOCUMENTS
+      // NORMALIZE UPLOADED DOCUMENTS
       // ========================================================
 
-      if (data.documents) {
+      if (
+        data.documents
+      ) {
         let newDocuments =
           data.documents;
-
-        /*
-         * Handle nested response:
-         *
-         * data.documents.documents
-         */
 
         if (
           newDocuments &&
@@ -985,33 +1182,55 @@ export default function DocumentsUpload() {
             newDocuments.documents;
         }
 
-        /*
-         * Merge instead of replacing.
-         *
-         * Example:
-         *
-         * Existing:
-         * {
-         *   photo: {...}
-         * }
-         *
-         * New:
-         * {
-         *   signature: {...}
-         * }
-         *
-         * Result:
-         * {
-         *   photo: {...},
-         *   signature: {...}
-         * }
-         */
+        if (
+          Array.isArray(
+            newDocuments
+          )
+        ) {
+          const normalized =
+            {};
+
+          newDocuments.forEach(
+            (item) => {
+              if (!item) {
+                return;
+              }
+
+              const name =
+                item.name ||
+                item.documentName ||
+                item.fieldname ||
+                item.fieldName;
+
+              if (name) {
+                normalized[
+                  name
+                ] = item;
+              }
+            }
+          );
+
+          newDocuments =
+            normalized;
+        }
+
+        // ======================================================
+        // MERGE WITH OLD DOCUMENTS
+        // ======================================================
 
         setUploadedDocuments(
           (previous) => ({
             ...(previous || {}),
             ...(newDocuments || {}),
           })
+        );
+
+        console.log(
+          "MERGED DOCUMENTS:",
+          {
+            ...uploadedDocuments,
+            ...newDocuments,
+          }
         );
       }
 
@@ -1037,15 +1256,18 @@ export default function DocumentsUpload() {
       );
 
       // ========================================================
-      // GO TO FEE DETAILS
+      // NEXT
       // ========================================================
 
       setTimeout(() => {
-        navigate("/fee-details", {
-          state: {
-            userId,
-          },
-        });
+        navigate(
+          "/fee-details",
+          {
+            state: {
+              userId,
+            },
+          }
+        );
       }, 700);
     } catch (err) {
       console.error(
@@ -1063,29 +1285,127 @@ export default function DocumentsUpload() {
   };
 
   // ============================================================
-  // VIEW FILE URL
+  // VIEW DOCUMENT
   // ============================================================
 
-  const getFileUrl = (file) => {
+  const handleViewDocument = (
+    file,
+    documentName
+  ) => {
     if (!file) {
-      return "#";
+      return;
     }
 
-    if (file.url) {
-      return file.url;
-    }
+    // Local newly selected file
+    if (
+      file instanceof File
+    ) {
+      const localUrl =
+        localPreviewUrls[
+          documentName
+        ];
 
-    if (file.path) {
-      const cleanPath =
-        file.path.replace(
-          /\\/g,
-          "/"
+      if (localUrl) {
+        window.open(
+          localUrl,
+          "_blank",
+          "noopener,noreferrer"
         );
+      }
 
-      return `https://cllnew.onrender.com/${cleanPath}`;
+      return;
     }
 
-    return "#";
+    // Cloudinary / backend file
+    const url =
+      getFileUrl(file);
+
+    if (!url) {
+      setError(
+        "File URL is not available."
+      );
+
+      return;
+    }
+
+    window.open(
+      url,
+      "_blank",
+      "noopener,noreferrer"
+    );
+  };
+
+  // ============================================================
+  // DOCUMENT PREVIEW
+  // ============================================================
+
+  const renderDocumentPreview = (
+    file,
+    documentName,
+    isLocal = false
+  ) => {
+    if (!file) {
+      return null;
+    }
+
+    const url = isLocal
+      ? localPreviewUrls[
+          documentName
+        ]
+      : getFileUrl(file);
+
+    if (!url) {
+      return null;
+    }
+
+    const fileType =
+      getFileType(file);
+
+    // ==========================================================
+    // IMAGE PREVIEW
+    // ==========================================================
+
+    if (
+      fileType === "image"
+    ) {
+      return (
+        <div className="mt-3 overflow-hidden rounded-lg border border-gray-200 bg-white p-3">
+          <div className="mb-2 text-xs font-bold text-gray-600">
+            File Preview
+          </div>
+
+          <img
+            src={url}
+            alt={documentName}
+            className="max-h-64 w-auto max-w-full rounded-md border border-gray-200 object-contain"
+          />
+        </div>
+      );
+    }
+
+    // ==========================================================
+    // PDF PREVIEW
+    // ==========================================================
+
+    if (
+      fileType === "pdf"
+    ) {
+      return (
+        <div className="mt-3 overflow-hidden rounded-lg border border-gray-200 bg-white">
+          <div className="border-b border-gray-200 px-3 py-2 text-xs font-bold text-gray-600">
+            PDF Preview
+          </div>
+
+          <iframe
+            src={url}
+            title={documentName}
+            className="h-72 w-full"
+          />
+        </div>
+      );
+    }
+
+    return null;
   };
 
   // ============================================================
@@ -1116,8 +1436,6 @@ export default function DocumentsUpload() {
 
         <div className="grid grid-cols-2 gap-3 bg-white px-6 pt-6 md:grid-cols-4">
 
-          {/* STEP 1 */}
-
           <Link
             to="/user-profile"
             state={{ userId }}
@@ -1131,8 +1449,6 @@ export default function DocumentsUpload() {
               Personal
             </div>
           </Link>
-
-          {/* STEP 2 */}
 
           <Link
             to="/qualification-details"
@@ -1148,8 +1464,6 @@ export default function DocumentsUpload() {
             </div>
           </Link>
 
-          {/* STEP 3 */}
-
           <div className="rounded-lg bg-[#ab183d] px-3 py-3 text-center text-white shadow-sm">
             <div className="text-sm font-bold">
               Step 3
@@ -1159,8 +1473,6 @@ export default function DocumentsUpload() {
               Documents
             </div>
           </div>
-
-          {/* STEP 4 */}
 
           <button
             type="button"
@@ -1174,7 +1486,17 @@ export default function DocumentsUpload() {
                 !allRequiredDocumentsUploaded
               ) {
                 validateAllDocuments();
+                return;
               }
+
+              navigate(
+                "/fee-details",
+                {
+                  state: {
+                    userId,
+                  },
+                }
+              );
             }}
             className={`rounded-lg px-3 py-3 text-center shadow-sm transition ${
               allRequiredDocumentsUploaded
@@ -1271,7 +1593,8 @@ export default function DocumentsUpload() {
                             ? (
                                 completedRequiredCount /
                                 requiredDocuments.length
-                              ) * 100
+                              ) *
+                              100
                             : 0
                         }%`,
                       }}
@@ -1317,6 +1640,13 @@ export default function DocumentsUpload() {
                           document.name
                         );
 
+                      const existingUrl =
+                        hasExistingFile
+                          ? getFileUrl(
+                              existingFile
+                            )
+                          : "";
+
                       return (
                         <div
                           key={
@@ -1358,7 +1688,7 @@ export default function DocumentsUpload() {
                           </label>
 
                           {/* =================================================
-                              INPUT
+                              FILE INPUT
                           ================================================== */}
 
                           <input
@@ -1378,7 +1708,9 @@ export default function DocumentsUpload() {
                                 document
                               )
                             }
-                            disabled={saving}
+                            disabled={
+                              saving
+                            }
                             className={`w-full cursor-pointer rounded-md border bg-white px-3 py-3 text-sm outline-none transition file:mr-4 file:rounded-md file:border-0 file:bg-[#ab183d] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-[#921532] focus:border-[#ab183d] disabled:cursor-not-allowed disabled:bg-gray-100 ${
                               documentError
                                 ? "border-red-500"
@@ -1407,12 +1739,12 @@ export default function DocumentsUpload() {
                           )}
 
                           {/* =================================================
-                              EXISTING DATABASE FILE
+                              EXISTING CLOUDINARY FILE
                           ================================================== */}
 
                           {!selected &&
                             hasExistingFile && (
-                              <div className="mt-3 rounded-md border border-green-200 bg-green-100 px-3 py-3">
+                              <div className="mt-3 rounded-md border border-green-200 bg-green-100 p-3">
 
                                 <div className="flex items-start gap-2">
 
@@ -1429,7 +1761,8 @@ export default function DocumentsUpload() {
                                     <div className="mt-1 break-all text-xs font-semibold text-green-700">
                                       {existingFile.originalName ||
                                         existingFile.filename ||
-                                        existingFile.name}
+                                        existingFile.name ||
+                                        "Uploaded Document"}
                                     </div>
 
                                     {existingFile.size && (
@@ -1441,62 +1774,141 @@ export default function DocumentsUpload() {
                                       </div>
                                     )}
 
-                                    {(existingFile.path ||
-                                      existingFile.url) && (
-                                      <a
-                                        href={getFileUrl(
-                                          existingFile
-                                        )}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="mt-2 inline-block text-xs font-bold text-[#ab183d] underline"
-                                      >
-                                        View Uploaded File
-                                      </a>
-                                    )}
+                                    {/* CLOUD URL */}
+
+                                  {/* ================================================= 
+    CLOUD FILE LINK / VIEW
+================================================= */}
+
+{existingUrl && (
+  <div className="mt-3 rounded-md border border-green-300 bg-white p-3">
+    <div className="mb-2 text-xs font-bold text-gray-700">
+      Uploaded File
+    </div>
+
+    <div className="flex flex-wrap gap-2">
+
+      {/* View File */}
+      <button
+        type="button"
+        onClick={() =>
+          handleViewDocument(
+            existingFile,
+            document.name
+          )
+        }
+        className="rounded-md bg-[#ab183d] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#921532]"
+      >
+        👁 View File
+      </button>
+
+      {/* Open Cloud File */}
+      <a
+        href={existingUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="rounded-md border border-green-600 bg-green-50 px-4 py-2 text-xs font-bold text-green-700 transition hover:bg-green-100"
+      >
+        🔗 View Uploaded File
+      </a>
+
+    </div>
+
+    {/* Actual Cloudinary URL */}
+    <div className="mt-3">
+      <div className="mb-1 text-xs font-semibold text-gray-600">
+        Cloud File Link
+      </div>
+
+      <a
+        href={existingUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block break-all rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-blue-600 underline hover:text-blue-800"
+      >
+        {existingUrl}
+      </a>
+    </div>
+  </div>
+)}
 
                                   </div>
 
                                 </div>
 
+                                {/* CLOUD PREVIEW */}
+
+                                {renderDocumentPreview(
+                                  existingFile,
+                                  document.name,
+                                  false
+                                )}
+
                               </div>
                             )}
 
                           {/* =================================================
-                              NEW FILE SELECTED
+                              NEW LOCAL FILE
                           ================================================== */}
 
                           {selectedFile && (
-                            <div className="mt-3 rounded-md border border-green-200 bg-green-100 px-3 py-3">
+                            <div className="mt-3 rounded-md border border-blue-200 bg-blue-50 p-3">
 
-                              <div className="flex items-start gap-2 text-xs font-semibold text-green-700">
+                              <div className="flex items-start gap-2">
 
-                                <span>
+                                <span className="font-bold text-blue-700">
                                   ✓
                                 </span>
 
-                                <div className="min-w-0">
+                                <div className="min-w-0 flex-1">
 
-                                  <div className="font-bold">
+                                  <div className="text-xs font-bold text-blue-700">
                                     New File Selected
                                   </div>
 
-                                  <div className="mt-1 break-all">
+                                  <div className="mt-1 break-all text-xs font-semibold text-blue-700">
                                     {
                                       selectedFile.name
                                     }
                                   </div>
 
-                                  <div className="mt-1">
+                                  <div className="mt-1 text-xs text-blue-600">
                                     File size:{" "}
                                     {formatFileSize(
                                       selectedFile.size
                                     )}
                                   </div>
 
+                                  {/* VIEW LOCAL FILE */}
+
+                                  {localPreviewUrls[
+                                    document.name
+                                  ] && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleViewDocument(
+                                          selectedFile,
+                                          document.name
+                                        )
+                                      }
+                                      className="mt-3 rounded-md bg-[#ab183d] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#921532]"
+                                    >
+                                      👁 View Selected File
+                                    </button>
+                                  )}
+
                                 </div>
 
                               </div>
+
+                              {/* LOCAL PREVIEW */}
+
+                              {renderDocumentPreview(
+                                selectedFile,
+                                document.name,
+                                true
+                              )}
 
                             </div>
                           )}
@@ -1506,15 +1918,12 @@ export default function DocumentsUpload() {
                           ================================================== */}
 
                           <p className="mt-2 text-xs text-gray-500">
-
                             Allowed file size:{" "}
-
                             <span className="font-semibold text-gray-700">
                               {
                                 document.sizeText
                               }
                             </span>
-
                           </p>
 
                           {/* =================================================
@@ -1522,20 +1931,15 @@ export default function DocumentsUpload() {
                           ================================================== */}
 
                           <p className="mt-1 text-xs text-gray-500">
-
                             Allowed format:{" "}
-
                             <span className="font-semibold text-gray-700">
-
                               {document.name ===
                                 "photo" ||
                               document.name ===
                                 "signature"
                                 ? "JPG, JPEG, PNG"
                                 : "JPG, JPEG, PNG, PDF"}
-
                             </span>
-
                           </p>
 
                         </div>
@@ -1641,11 +2045,9 @@ export default function DocumentsUpload() {
               !saving &&
               !loadingDocuments && (
                 <p className="text-center text-sm font-medium text-red-600">
-
                   Please upload the mandatory
                   Passport Size Photo and
                   Signature to continue.
-
                 </p>
               )}
 
@@ -1653,10 +2055,8 @@ export default function DocumentsUpload() {
               !saving &&
               !loadingDocuments && (
                 <p className="text-center text-sm font-medium text-green-600">
-
                   ✓ Required documents uploaded.
                   You can continue to Fee Details.
-
                 </p>
               )}
 

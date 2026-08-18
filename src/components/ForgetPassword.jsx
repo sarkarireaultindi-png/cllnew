@@ -702,7 +702,7 @@ const handleResetPassword = async (e) => {
 
               <div className="rounded-lg bg-gray-50 p-3 text-sm text-gray-600">
 
-                Account:
+                Registration Number:
 
                 <span className="ml-1 font-semibold text-gray-800">
                   {userId}

@@ -255,16 +255,17 @@ router.post("/register", async (req, res) => {
 
     try {
       const { data, error } =
-        await resend.emails.send({
-          from:
-            "CCL Portal <onboarding@resend.dev>",
+  await resend.emails.send({
+    from:
+      process.env.EMAIL_FROM ||
+      "CCL Portal <noreply@ccl.ac>",
 
-          to: [cleanEmail],
+    to: [cleanEmail],
 
-          subject:
-            "Registration Successful - Login Details",
+    subject:
+      "Registration Successful - Login Details",
 
-          html: `
+    html: `
 <!DOCTYPE html>
 
 <html>
