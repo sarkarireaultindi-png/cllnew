@@ -975,7 +975,7 @@ export default function PersonalDetailsForm() {
           </div>
 
           <Link
-            to="/qualification-details"
+            to=""
             state={{ userId }}
             className="rounded-lg border border-gray-300 bg-gray-100 px-3 py-3 text-center text-gray-600 transition hover:border-[#ab183d] hover:bg-[#ab183d]/5 hover:text-[#ab183d]"
           >
@@ -989,7 +989,7 @@ export default function PersonalDetailsForm() {
           </Link>
 
           <Link
-            to="/documents-upload"
+            to=""
             state={{ userId }}
             className="rounded-lg border border-gray-300 bg-gray-100 px-3 py-3 text-center text-gray-600 transition hover:border-[#ab183d] hover:bg-[#ab183d]/5 hover:text-[#ab183d]"
           >
@@ -1003,7 +1003,7 @@ export default function PersonalDetailsForm() {
           </Link>
 
           <Link
-            to="/fee-details"
+            to=""
             state={{ userId }}
             className="rounded-lg border border-gray-300 bg-gray-100 px-3 py-3 text-center text-gray-600 transition hover:border-[#ab183d] hover:bg-[#ab183d]/5 hover:text-[#ab183d]"
           >

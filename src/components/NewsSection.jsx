@@ -10,6 +10,12 @@ export default function NewsSection() {
       title: "CCL Launches Navchetna Campaign",
       link: "/news/navchetna-campaign",
     },
+     {
+      title:
+        "Notification for Central Coalfields Limited",
+      link: "/assets/656155165165651.pdf",
+      pdf: "/assets/656155165165651.pdf",
+    },
     {
       title: "CCL Conducts ERP Capacity Program",
       link: "/news/ccl-conducts",
@@ -30,17 +36,29 @@ export default function NewsSection() {
 
   const whatsNew = [
     
+     {
+      title:
+        "Notification for Central Coalfields Limited",
+      link: "/",
+      pdf: "/assets/656155165165651.pdf",
+    },
     {
       title:
         "Notification for engagement of full time Advisor (Excavation) at WCL",
       link: "/",
-      pdf: "/assets/1340162318",
+      pdf: "/assets/1340162318.pdf",
     },
     {
       title:
         "Notice regarding written examination for departmental selection to the post of Translator (Trainee/OL), Clerical Grade-III",
       link: "/",
       pdf: "/assets/1338164015.pdf",
+    },
+      {
+      title:
+        "Notification for Central Coalfields Limited",
+      link: "/",
+      pdf: "/assets/656155165165651.pdf",
     },
     {
       title: "List of Eligible and Not Eligible candidates Written Examination for their selection to the post of Jr. Chemist in T&S Grade-D",
@@ -51,6 +69,12 @@ export default function NewsSection() {
       title: "List of eligible candidates for appearing in written exam for selection to the post of Peon(T&S Grade: �H�)",
       link: "/",
       pdf: "/assets/1335113542.pdf",
+    },
+      {
+      title:
+        "Notification for Central Coalfields Limited",
+      link: "/",
+      pdf: "/assets/656155165165651.pdf",
     },
     {
       title:

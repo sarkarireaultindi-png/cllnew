@@ -1,4 +1,3 @@
-
 import mongoose from "mongoose";
 
 const adminSchema = new mongoose.Schema(
@@ -13,6 +12,11 @@ const adminSchema = new mongoose.Schema(
     password: {
       type: String,
       required: true,
+    },
+
+    passwordChangedAt: {
+      type: Date,
+      default: null,
     },
   },
   {

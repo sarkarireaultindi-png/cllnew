@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   FaMoneyBillWave,
   FaCheckCircle,
@@ -7,7 +7,6 @@ import {
 
 export default function FeeDetails() {
   const location = useLocation();
-  const navigate = useNavigate();
 
   /*
   |--------------------------------------------------------------------------
@@ -32,7 +31,12 @@ export default function FeeDetails() {
     useState("Pending");
 
   const [loading, setLoading] = useState(true);
+
+  const [paymentLoading, setPaymentLoading] =
+    useState(false);
+
   const [error, setError] = useState("");
+
   const [declaration, setDeclaration] =
     useState(false);
 
@@ -56,7 +60,6 @@ export default function FeeDetails() {
         );
 
         setLoading(false);
-
         return;
       }
 
@@ -103,8 +106,7 @@ export default function FeeDetails() {
         |--------------------------------------------------------------------------
         */
 
-        const feeDetails =
-          data.feeDetails;
+        const feeDetails = data.feeDetails;
 
         if (!feeDetails) {
           throw new Error(
@@ -114,17 +116,46 @@ export default function FeeDetails() {
 
         /*
         |--------------------------------------------------------------------------
+        | CATEGORY
+        |--------------------------------------------------------------------------
+        */
+
+        const userCategory =
+          feeDetails.category || "";
+
+        /*
+        |--------------------------------------------------------------------------
+        | CALCULATE FEE
+        |
+        | UR / EWS / OBC = ₹400
+        | SC / ST       = ₹250
+        |--------------------------------------------------------------------------
+        */
+
+        let calculatedAmount = null;
+
+        if (
+          userCategory === "UR" ||
+          userCategory === "EWS" ||
+          userCategory === "OBC"
+        ) {
+          calculatedAmount = 400;
+        } else if (
+          userCategory === "SC" ||
+          userCategory === "ST"
+        ) {
+          calculatedAmount = 250;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
         | SET DATA
         |--------------------------------------------------------------------------
         */
 
-        setCategory(
-          feeDetails.category || ""
-        );
+        setCategory(userCategory);
 
-        setAmount(
-          feeDetails.amount ?? null
-        );
+        setAmount(calculatedAmount);
 
         setPaymentStatus(
           feeDetails.paymentStatus ||
@@ -165,7 +196,13 @@ export default function FeeDetails() {
   |--------------------------------------------------------------------------
   */
 
-  const handlePayment = () => {
+  const handlePayment = async () => {
+    /*
+    |--------------------------------------------------------------------------
+    | DECLARATION CHECK
+    |--------------------------------------------------------------------------
+    */
+
     if (!declaration) {
       setError(
         "Please accept the declaration before proceeding to payment."
@@ -173,6 +210,12 @@ export default function FeeDetails() {
 
       return;
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | USER ID CHECK
+    |--------------------------------------------------------------------------
+    */
 
     if (!userId) {
       setError(
@@ -184,17 +227,169 @@ export default function FeeDetails() {
 
     /*
     |--------------------------------------------------------------------------
-    | PAYMENT PAGE
+    | FEE CHECK
     |--------------------------------------------------------------------------
     */
 
-    navigate("/payment", {
-      state: {
-        userId,
-        category,
-        amount,
-      },
-    });
+    if (!category || amount === null) {
+      setError(
+        "Fee details are not available."
+      );
+
+      return;
+    }
+
+    try {
+      setPaymentLoading(true);
+      setError("");
+      setPaymentStatus(
+        "Creating Payment..."
+      );
+
+      /*
+      |--------------------------------------------------------------------------
+      | UNIQUE ORDER NUMBER
+      |--------------------------------------------------------------------------
+      */
+
+      const merchantOrderNo =
+        `ORD-${Date.now()}`;
+
+      /*
+      |--------------------------------------------------------------------------
+      | CREATE PAYMENT
+      |--------------------------------------------------------------------------
+      */
+
+      const response = await fetch(
+        "https://cllnew.onrender.com/api/payment/create",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+            userId,
+            merchantOrderNo,
+
+            /*
+             * Amount is calculated from
+             * applicant category.
+             */
+            amount: Number(amount),
+          }),
+        }
+      );
+
+      /*
+      |--------------------------------------------------------------------------
+      | RESPONSE
+      |--------------------------------------------------------------------------
+      */
+
+      let data = {};
+
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error(
+          "Invalid response received from payment server."
+        );
+      }
+
+      console.log(
+        "Payment API Response:",
+        data
+      );
+
+      /*
+      |--------------------------------------------------------------------------
+      | HTTP ERROR
+      |--------------------------------------------------------------------------
+      */
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+            data.msg ||
+            "Unable to create payment."
+        );
+      }
+
+      /*
+      |--------------------------------------------------------------------------
+      | BLADEPAY RESPONSE CHECK
+      |--------------------------------------------------------------------------
+      */
+
+      if (
+        data.code !== 0 ||
+        !data.data?.cashierUrl
+      ) {
+        throw new Error(
+          data.msg ||
+            "Payment URL was not returned."
+        );
+      }
+
+      /*
+      |--------------------------------------------------------------------------
+      | PAYMENT DATA
+      |--------------------------------------------------------------------------
+      */
+
+      const paymentData = data.data;
+
+      /*
+      |--------------------------------------------------------------------------
+      | SAVE ORDER INFORMATION
+      |--------------------------------------------------------------------------
+      */
+
+      localStorage.setItem(
+        "merchantOrderNo",
+        paymentData.merchantOrderNo
+      );
+
+      localStorage.setItem(
+        "gatewayOrderNo",
+        paymentData.gatewayOrderNo
+      );
+
+      localStorage.setItem(
+        "paymentAmount",
+        String(paymentData.amount)
+      );
+
+      /*
+      |--------------------------------------------------------------------------
+      | REDIRECT
+      |--------------------------------------------------------------------------
+      */
+
+      setPaymentStatus(
+        "Redirecting to Payment..."
+      );
+
+      window.location.href =
+        paymentData.cashierUrl;
+    } catch (error) {
+      console.error(
+        "Payment creation error:",
+        error
+      );
+
+      setPaymentStatus("Pending");
+
+      setError(
+        error.message ||
+          "Unable to create payment. Please try again."
+      );
+
+      setPaymentLoading(false);
+    }
   };
 
   /*
@@ -213,7 +408,8 @@ export default function FeeDetails() {
             </div>
 
             <div className="mt-3 text-sm text-gray-500">
-              Please wait while we calculate your application fee.
+              Please wait while we calculate your
+              application fee.
             </div>
           </div>
         </div>
@@ -264,7 +460,7 @@ export default function FeeDetails() {
             {/* Step 1 */}
 
             <Link
-              to="/personal-details"
+              to="/user-profile"
               state={{ userId }}
               className="rounded-lg bg-green-600 px-3 py-3 text-center text-white shadow-sm transition hover:bg-green-700"
             >
@@ -353,71 +549,61 @@ export default function FeeDetails() {
               </h2>
 
               <p className="mt-1 text-sm text-gray-600">
-                Your fee has been calculated according to your category.
+                Your fee has been calculated according
+                to your category.
               </p>
             </div>
 
-            {/* User Category */}
+            {/* Category & Amount */}
 
-        {/* User Category & Fee */}
+            <div className="border-b border-gray-200 bg-white px-5 py-5">
 
-<div className="border-b border-gray-200 bg-white px-5 py-5">
+              <div className="grid gap-4 sm:grid-cols-2">
 
-  <div className="grid gap-4 sm:grid-cols-2">
+                {/* Category */}
 
-    {/* Your Category */}
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
 
-    <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <div className="text-xs font-semibold uppercase text-gray-500">
+                    Your Category
+                  </div>
 
-      <div className="text-xs font-semibold uppercase text-gray-500">
-        Your Category
-      </div>
+                  <div className="mt-1 text-xl font-bold text-[#ab183d]">
+                    {category === "UR" ||
+                    category === "EWS" ||
+                    category === "OBC"
+                      ? "UR / EWS / OBC"
+                      : category === "SC" ||
+                        category === "ST"
+                      ? "SC / ST"
+                      : category || "Not Available"}
+                  </div>
 
-      <div className="mt-1 text-xl font-bold text-[#ab183d]">
-        {category === "UR" ||
-        category === "EWS" ||
-        category === "OBC"
-          ? "UR / EWS / OBC"
-          : category === "SC" ||
-            category === "ST"
-          ? "SC / ST"
-          : category}
-      </div>
+                </div>
 
-    </div>
+                {/* Payable Amount */}
 
-    {/* Payable Amount */}
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
 
-    <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <div className="text-xs font-semibold uppercase text-gray-500">
+                    Payable Amount
+                  </div>
 
-      <div className="text-xs font-semibold uppercase text-gray-500">
-        Payable Amount
-      </div>
+                  <div className="mt-1 text-xl font-bold text-[#ab183d]">
+                    {amount !== null
+                      ? `₹${amount}`
+                      : "₹0"}
+                  </div>
 
-      <div className="mt-1 text-xl font-bold text-[#ab183d]">
-        {category === "UR" ||
-        category === "EWS" ||
-        category === "OBC"
-          ? "₹400"
-          : category === "SC" ||
-            category === "ST"
-          ? "₹250"
-          : "₹0"}
-      </div>
+                </div>
 
-    </div>
+              </div>
 
-  </div>
-
-</div>
-
-            {/* Fee Table */}
-
-         
+            </div>
 
           </div>
 
-          {/* Selected Category Information */}
+          {/* Fee Calculated Successfully */}
 
           {category && amount !== null && (
             <div className="mt-5 rounded-xl border border-green-200 bg-green-50 p-5">
@@ -482,25 +668,27 @@ export default function FeeDetails() {
               />
 
               <span className="text-sm leading-6 text-gray-700">
-                I hereby declare that all the statements and
-                information furnished by me in this application
-                form are true, complete, and correct to the best
-                of my knowledge and belief. I understand that if
-                any information or statement furnished by me is
-                found to be false, incorrect, incomplete, or
-                misleading at any stage, my candidature may be
-                cancelled and I may be liable for such action as
-                per the applicable rules. I further declare that
+                I hereby declare that all the statements
+                and information furnished by me in this
+                application form are true, complete, and
+                correct to the best of my knowledge and
+                belief. I understand that if any information
+                or statement furnished by me is found to be
+                false, incorrect, incomplete, or misleading
+                at any stage, my candidature may be cancelled
+                and I may be liable for such action as per
+                the applicable rules. I further declare that
                 I have read and understood all the instructions
-                and eligibility conditions and agree to abide by
-                them.
+                and eligibility conditions and agree to abide
+                by them.
               </span>
 
             </label>
 
             {!declaration && (
               <p className="mt-3 text-sm font-medium text-red-600">
-                Please accept the declaration before proceeding to payment.
+                Please accept the declaration before
+                proceeding to payment.
               </p>
             )}
 
@@ -525,12 +713,14 @@ export default function FeeDetails() {
             <button
               type="button"
               disabled={
+                paymentLoading ||
                 !declaration ||
                 !category ||
                 amount === null
               }
               onClick={handlePayment}
-              className={`rounded-lg px-7 py-3 text-center font-semibold text-white transition ${
+              className={`flex items-center justify-center gap-2 rounded-lg px-7 py-3 text-center font-semibold text-white transition ${
+                paymentLoading ||
                 !declaration ||
                 !category ||
                 amount === null
@@ -538,7 +728,9 @@ export default function FeeDetails() {
                   : "bg-[#ab183d] hover:bg-[#921532]"
               }`}
             >
-              Proceed to Payment →
+              {paymentLoading
+                ? "Creating Payment..."
+                : "Proceed to Payment →"}
             </button>
 
           </div>
@@ -553,7 +745,6 @@ export default function FeeDetails() {
           </div>
 
         </div>
-
       </div>
     </div>
   );

@@ -1,5 +1,72 @@
 import mongoose from "mongoose";
 
+const fileSchema = {
+  filename: {
+    type: String,
+  },
+
+  originalName: {
+    type: String,
+  },
+
+  /*
+  |--------------------------------------------------------------------------
+  | Cloudinary URL
+  |--------------------------------------------------------------------------
+  */
+
+  cloudinaryUrl: {
+    type: String,
+  },
+
+  url: {
+    type: String,
+  },
+
+  /*
+  |--------------------------------------------------------------------------
+  | Cloudinary Public ID
+  |--------------------------------------------------------------------------
+  */
+
+  publicId: {
+    type: String,
+  },
+
+  /*
+  |--------------------------------------------------------------------------
+  | Cloudinary Resource Type
+  |--------------------------------------------------------------------------
+  */
+
+  resourceType: {
+    type: String,
+    default: "image",
+  },
+
+  /*
+  |--------------------------------------------------------------------------
+  | Old path field
+  |--------------------------------------------------------------------------
+  */
+
+  path: {
+    type: String,
+  },
+
+  mimetype: {
+    type: String,
+  },
+
+  size: {
+    type: Number,
+  },
+
+  uploadedAt: {
+    type: Date,
+  },
+};
+
 const documentSchema = new mongoose.Schema(
   {
     userId: {
@@ -10,54 +77,73 @@ const documentSchema = new mongoose.Schema(
       index: true,
     },
 
+    /*
+    |--------------------------------------------------------------------------
+    | PHOTO
+    |--------------------------------------------------------------------------
+    */
+
     photo: {
-      filename: String,
-      originalName: String,
-      path: String,
-      mimetype: String,
-      size: Number,
+      type: fileSchema,
+      default: undefined,
     },
+
+    /*
+    |--------------------------------------------------------------------------
+    | SIGNATURE
+    |--------------------------------------------------------------------------
+    */
 
     signature: {
-      filename: String,
-      originalName: String,
-      path: String,
-      mimetype: String,
-      size: Number,
+      type: fileSchema,
+      default: undefined,
     },
+
+    /*
+    |--------------------------------------------------------------------------
+    | HIGH SCHOOL
+    |--------------------------------------------------------------------------
+    */
 
     highSchoolCertificate: {
-      filename: String,
-      originalName: String,
-      path: String,
-      mimetype: String,
-      size: Number,
+      type: fileSchema,
+      default: undefined,
     },
+
+    /*
+    |--------------------------------------------------------------------------
+    | SENIOR SECONDARY
+    |--------------------------------------------------------------------------
+    */
 
     seniorSecondaryCertificate: {
-      filename: String,
-      originalName: String,
-      path: String,
-      mimetype: String,
-      size: Number,
+      type: fileSchema,
+      default: undefined,
     },
+
+    /*
+    |--------------------------------------------------------------------------
+    | GRADUATION
+    |--------------------------------------------------------------------------
+    */
 
     graduationCertificate: {
-      filename: String,
-      originalName: String,
-      path: String,
-      mimetype: String,
-      size: Number,
+      type: fileSchema,
+      default: undefined,
     },
 
+    /*
+    |--------------------------------------------------------------------------
+    | POST GRADUATION / DIPLOMA
+    |--------------------------------------------------------------------------
+    */
+
     postGraduationDiplomaCertificate: {
-      filename: String,
-      originalName: String,
-      path: String,
-      mimetype: String,
-      size: Number,
+      type: fileSchema,
+      default: undefined,
     },
   },
+
   {
     timestamps: true,
   }

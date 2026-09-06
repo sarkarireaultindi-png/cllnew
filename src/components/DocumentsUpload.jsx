@@ -1490,7 +1490,7 @@ export default function DocumentsUpload() {
               }
 
               navigate(
-                "/fee-details",
+                "",
                 {
                   state: {
                     userId,
@@ -1500,7 +1500,7 @@ export default function DocumentsUpload() {
             }}
             className={`rounded-lg px-3 py-3 text-center shadow-sm transition ${
               allRequiredDocumentsUploaded
-                ? "bg-green-600 text-white hover:bg-green-700"
+                ? "bg-gray-100 text-gray-600"
                 : "cursor-not-allowed border border-gray-300 bg-gray-100 text-gray-400"
             }`}
           >

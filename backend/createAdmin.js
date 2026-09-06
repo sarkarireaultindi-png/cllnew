@@ -13,7 +13,7 @@ const createAdmin = async () => {
     console.log("MongoDB connected");
 
     const username = "admin";
-    const password = "Asdfgh@12345#";
+    const password = "Asdfgh@123#";
 
     const existingAdmin = await Admin.findOne({
       username,

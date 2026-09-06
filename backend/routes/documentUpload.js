@@ -11,11 +11,6 @@ const router = express.Router();
 |--------------------------------------------------------------------------
 | MULTER MEMORY STORAGE
 |--------------------------------------------------------------------------
-|
-| Files are kept temporarily in memory and uploaded directly to
-| Cloudinary. Nothing is permanently stored on the Render filesystem.
-|
-|--------------------------------------------------------------------------
 */
 
 const storage = multer.memoryStorage();
@@ -27,9 +22,7 @@ const storage = multer.memoryStorage();
 */
 
 const fileFilter = (req, file, cb) => {
-  const extension = path
-    .extname(file.originalname)
-    .toLowerCase();
+  const extension = path.extname(file.originalname).toLowerCase();
 
   const imageMimeTypes = [
     "image/jpeg",
@@ -167,6 +160,133 @@ const documentFields = [
 
 /*
 |--------------------------------------------------------------------------
+| CREATE CLOUDINARY URL
+|--------------------------------------------------------------------------
+|
+| This is important for OLD MongoDB records where only:
+|
+| filename: "cllnew/documents/photo-xxxx"
+|
+| was stored.
+|
+*/
+
+const getCloudinaryUrl = (
+  publicId,
+  resourceType = "image"
+) => {
+  if (!publicId) {
+    return "";
+  }
+
+  try {
+    return cloudinary.url(publicId, {
+      secure: true,
+      resource_type: resourceType,
+      type: "upload",
+    });
+  } catch (error) {
+    console.error(
+      "Cloudinary URL generation error:",
+      error
+    );
+
+    return "";
+  }
+};
+
+/*
+|--------------------------------------------------------------------------
+| NORMALIZE DOCUMENT
+|--------------------------------------------------------------------------
+|
+| Converts old records into:
+|
+| {
+|   filename,
+|   cloudinaryUrl,
+|   url,
+|   publicId
+| }
+|
+|--------------------------------------------------------------------------
+*/
+
+const normalizeDocumentFile = (
+  documentFile,
+  defaultResourceType = "image"
+) => {
+  if (!documentFile) {
+    return documentFile;
+  }
+
+  const publicId =
+    documentFile.publicId ||
+    documentFile.filename ||
+    "";
+
+  const resourceType =
+    documentFile.resourceType ||
+    defaultResourceType;
+
+  /*
+  |--------------------------------------------------------------------------
+  | Existing URL
+  |--------------------------------------------------------------------------
+  */
+
+  if (
+    documentFile.url ||
+    documentFile.cloudinaryUrl
+  ) {
+    return {
+      ...documentFile,
+      url:
+        documentFile.url ||
+        documentFile.cloudinaryUrl,
+
+      cloudinaryUrl:
+        documentFile.cloudinaryUrl ||
+        documentFile.url,
+
+      publicId,
+      resourceType,
+    };
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | OLD RECORD
+  |--------------------------------------------------------------------------
+  */
+
+  if (publicId) {
+    const cloudinaryUrl =
+      getCloudinaryUrl(
+        publicId,
+        resourceType
+      );
+
+    return {
+      ...documentFile,
+
+      filename: publicId,
+
+      cloudinaryUrl,
+
+      url: cloudinaryUrl,
+
+      publicId,
+
+      resourceType,
+    };
+  }
+
+  return documentFile;
+};
+
+/*
+|--------------------------------------------------------------------------
 | UPLOAD BUFFER TO CLOUDINARY
 |--------------------------------------------------------------------------
 */
@@ -181,12 +301,6 @@ const uploadToCloudinary = (
     const extension = path
       .extname(originalName)
       .toLowerCase();
-
-    /*
-    |--------------------------------------------------------------------------
-    | Images
-    |--------------------------------------------------------------------------
-    */
 
     const resourceType =
       mimetype === "application/pdf"
@@ -204,12 +318,6 @@ const uploadToCloudinary = (
             `${fieldName}-${Date.now()}-${Math.round(
               Math.random() * 1e9
             )}`,
-
-          /*
-          |----------------------------------------------------------------------
-          | Keep PDF extension
-          |----------------------------------------------------------------------
-          */
 
           ...(resourceType === "raw"
             ? {
@@ -328,7 +436,7 @@ router.post(
 
       /*
       |--------------------------------------------------------------------------
-      | REQUIRED DOCUMENT CHECK
+      | REQUIRED PHOTO CHECK
       |--------------------------------------------------------------------------
       */
 
@@ -337,15 +445,23 @@ router.post(
         Boolean(
           existingDocument?.photo?.cloudinaryUrl ||
           existingDocument?.photo?.url ||
-          existingDocument?.photo?.filename
+          existingDocument?.photo?.filename ||
+          existingDocument?.photo?.publicId
         );
+
+      /*
+      |--------------------------------------------------------------------------
+      | REQUIRED SIGNATURE CHECK
+      |--------------------------------------------------------------------------
+      */
 
       const hasSignature =
         hasNewSignature ||
         Boolean(
           existingDocument?.signature?.cloudinaryUrl ||
           existingDocument?.signature?.url ||
-          existingDocument?.signature?.filename
+          existingDocument?.signature?.filename ||
+          existingDocument?.signature?.publicId
         );
 
       /*
@@ -378,7 +494,7 @@ router.post(
 
       /*
       |--------------------------------------------------------------------------
-      | CREATE RECORD IF NOT EXISTS
+      | CREATE RECORD
       |--------------------------------------------------------------------------
       */
 
@@ -391,7 +507,7 @@ router.post(
 
       /*
       |--------------------------------------------------------------------------
-      | UPLOAD NEW FILES TO CLOUDINARY
+      | UPLOAD DOCUMENTS
       |--------------------------------------------------------------------------
       */
 
@@ -406,7 +522,7 @@ router.post(
 
         /*
         |--------------------------------------------------------------------------
-        | Nothing uploaded for this field
+        | NO NEW FILE
         |--------------------------------------------------------------------------
         */
 
@@ -420,7 +536,7 @@ router.post(
 
         /*
         |--------------------------------------------------------------------------
-        | Upload
+        | CLOUDINARY UPLOAD
         |--------------------------------------------------------------------------
         */
 
@@ -439,7 +555,7 @@ router.post(
 
         /*
         |--------------------------------------------------------------------------
-        | OLD CLOUDINARY FILE
+        | OLD FILE
         |--------------------------------------------------------------------------
         */
 
@@ -496,7 +612,87 @@ router.post(
 
       /*
       |--------------------------------------------------------------------------
-      | SAVE MONGODB
+      | NORMALIZE OLD FILES
+      |--------------------------------------------------------------------------
+      |
+      | This handles documents uploaded before the new URL fields existed.
+      |
+      */
+
+      if (existingDocument.photo) {
+        existingDocument.photo =
+          normalizeDocumentFile(
+            existingDocument.photo,
+            "image"
+          );
+      }
+
+      if (existingDocument.signature) {
+        existingDocument.signature =
+          normalizeDocumentFile(
+            existingDocument.signature,
+            "image"
+          );
+      }
+
+      if (
+        existingDocument.highSchoolCertificate
+      ) {
+        existingDocument.highSchoolCertificate =
+          normalizeDocumentFile(
+            existingDocument.highSchoolCertificate,
+            existingDocument
+              .highSchoolCertificate
+              ?.resourceType ||
+              "image"
+          );
+      }
+
+      if (
+        existingDocument.seniorSecondaryCertificate
+      ) {
+        existingDocument.seniorSecondaryCertificate =
+          normalizeDocumentFile(
+            existingDocument
+              .seniorSecondaryCertificate,
+            existingDocument
+              .seniorSecondaryCertificate
+              ?.resourceType ||
+              "image"
+          );
+      }
+
+      if (
+        existingDocument.graduationCertificate
+      ) {
+        existingDocument.graduationCertificate =
+          normalizeDocumentFile(
+            existingDocument
+              .graduationCertificate,
+            existingDocument
+              .graduationCertificate
+              ?.resourceType ||
+              "image"
+          );
+      }
+
+      if (
+        existingDocument.postGraduationDiplomaCertificate
+      ) {
+        existingDocument.postGraduationDiplomaCertificate =
+          normalizeDocumentFile(
+            existingDocument
+              .postGraduationDiplomaCertificate,
+            existingDocument
+              .postGraduationDiplomaCertificate
+              ?.resourceType ||
+              "image"
+          );
+      }
+
+      /*
+      |--------------------------------------------------------------------------
+      | SAVE
       |--------------------------------------------------------------------------
       */
 
@@ -610,6 +806,104 @@ router.get(
           documents: null,
         });
       }
+
+      /*
+      |--------------------------------------------------------------------------
+      | NORMALIZE OLD PHOTO
+      |--------------------------------------------------------------------------
+      */
+
+      if (documents.photo) {
+        documents.photo =
+          normalizeDocumentFile(
+            documents.photo,
+            "image"
+          );
+      }
+
+      /*
+      |--------------------------------------------------------------------------
+      | NORMALIZE OLD SIGNATURE
+      |--------------------------------------------------------------------------
+      */
+
+      if (documents.signature) {
+        documents.signature =
+          normalizeDocumentFile(
+            documents.signature,
+            "image"
+          );
+      }
+
+      /*
+      |--------------------------------------------------------------------------
+      | NORMALIZE CERTIFICATES
+      |--------------------------------------------------------------------------
+      */
+
+      if (
+        documents.highSchoolCertificate
+      ) {
+        documents.highSchoolCertificate =
+          normalizeDocumentFile(
+            documents.highSchoolCertificate,
+            documents
+              .highSchoolCertificate
+              ?.resourceType ||
+              "image"
+          );
+      }
+
+      if (
+        documents.seniorSecondaryCertificate
+      ) {
+        documents.seniorSecondaryCertificate =
+          normalizeDocumentFile(
+            documents.seniorSecondaryCertificate,
+            documents
+              .seniorSecondaryCertificate
+              ?.resourceType ||
+              "image"
+          );
+      }
+
+      if (
+        documents.graduationCertificate
+      ) {
+        documents.graduationCertificate =
+          normalizeDocumentFile(
+            documents.graduationCertificate,
+            documents
+              .graduationCertificate
+              ?.resourceType ||
+              "image"
+          );
+      }
+
+      if (
+        documents.postGraduationDiplomaCertificate
+      ) {
+        documents.postGraduationDiplomaCertificate =
+          normalizeDocumentFile(
+            documents.postGraduationDiplomaCertificate,
+            documents
+              .postGraduationDiplomaCertificate
+              ?.resourceType ||
+              "image"
+          );
+      }
+
+      /*
+      |--------------------------------------------------------------------------
+      | SAVE NORMALIZED URL
+      |--------------------------------------------------------------------------
+      |
+      | This also updates the old MongoDB record so that next time
+      | it already contains the Cloudinary URL.
+      |
+      */
+
+      await documents.save();
 
       /*
       |--------------------------------------------------------------------------

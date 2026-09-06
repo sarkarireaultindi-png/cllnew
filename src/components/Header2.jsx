@@ -5,6 +5,7 @@ import {
   FaChevronDown,
   FaUserCircle,
   FaSignOutAlt,
+  FaReceipt,
 } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -16,26 +17,22 @@ export default function Header() {
 
   const navigate = useNavigate();
 
-  // --------------------------------------------------
+  // ==================================================
   // LOGIN CHECK
-  // --------------------------------------------------
+  // ==================================================
 
   const userId = localStorage.getItem("userId");
   const isLoggedIn = Boolean(userId);
 
-  // --------------------------------------------------
+  // ==================================================
   // MENU
-  // --------------------------------------------------
+  // ==================================================
 
   const menus = [
     {
       name: "Home",
       path: "/",
     },
-
-    // ------------------------------------------------
-    // ABOUT US
-    // ------------------------------------------------
 
     {
       name: "About Us",
@@ -53,7 +50,6 @@ export default function Header() {
           name: "Company Profile",
           path: "/about-us/company-profile",
         },
-
         {
           name: "RTI Act / Infrastructure",
           path: "/about-us/rti-infrastructure",
@@ -65,18 +61,10 @@ export default function Header() {
       ],
     },
 
-    // ------------------------------------------------
-    // APPLY
-    // ------------------------------------------------
-
     {
       name: "Apply",
       path: "/apply-vacancy",
     },
-
-    // ------------------------------------------------
-    // PERFORMANCE
-    // ------------------------------------------------
 
     {
       name: "Performance",
@@ -88,10 +76,6 @@ export default function Header() {
         },
       ],
     },
-
-    // ------------------------------------------------
-    // BUSINESS
-    // ------------------------------------------------
 
     {
       name: "Business",
@@ -116,10 +100,6 @@ export default function Header() {
       ],
     },
 
-    // ------------------------------------------------
-    // SUSTAINABILITY
-    // ------------------------------------------------
-
     {
       name: "Sustainability",
       path: "/sustainability",
@@ -143,10 +123,6 @@ export default function Header() {
       ],
     },
 
-    // ------------------------------------------------
-    // VIGILANCE
-    // ------------------------------------------------
-
     {
       name: "Vigilance",
       path: "/vigilance",
@@ -169,15 +145,11 @@ export default function Header() {
         },
       ],
     },
-
-    // ------------------------------------------------
-    // INFO DESK
-    // ------------------------------------------------
   ];
 
-  // --------------------------------------------------
+  // ==================================================
   // CLOSE ALL MENUS
-  // --------------------------------------------------
+  // ==================================================
 
   const closeMenus = () => {
     setMobileMenu(false);
@@ -186,32 +158,34 @@ export default function Header() {
     setProfileMenu(false);
   };
 
-  // --------------------------------------------------
+  // ==================================================
   // LOGOUT
-  // --------------------------------------------------
+  // ==================================================
 
   const handleLogout = () => {
     localStorage.removeItem("userId");
-
     closeMenus();
-
     navigate("/");
   };
 
-  // --------------------------------------------------
+  // ==================================================
   // DESKTOP DROPDOWN
-  // --------------------------------------------------
+  // ==================================================
 
   const handleDesktopDropdown = (name) => {
-    setDesktopDropdown(desktopDropdown === name ? null : name);
+    setDesktopDropdown(
+      desktopDropdown === name ? null : name
+    );
   };
 
-  // --------------------------------------------------
+  // ==================================================
   // MOBILE DROPDOWN
-  // --------------------------------------------------
+  // ==================================================
 
   const handleMobileDropdown = (name) => {
-    setMobileDropdown(mobileDropdown === name ? null : name);
+    setMobileDropdown(
+      mobileDropdown === name ? null : name
+    );
   };
 
   return (
@@ -227,7 +201,10 @@ export default function Header() {
           ================================================== */}
 
           <div className="flex items-center bg-black px-3 py-2 sm:px-4">
-            <Link to="/" onClick={closeMenus}>
+            <Link
+              to="/"
+              onClick={closeMenus}
+            >
               <img
                 src="/assets/CCL_LOGO2_final.jpg"
                 alt="CCL Logo"
@@ -257,25 +234,45 @@ export default function Header() {
                     }
                   }}
                 >
-                  {/* MENU WITH SUBMENU */}
+                  {/* ==================================================
+                      APPLY - DISABLED WHEN USER IS LOGGED IN
+                  ================================================== */}
 
-                  {menu.submenu ? (
+                  {menu.name === "Apply" && isLoggedIn ? (
+                    <span
+                      className="flex cursor-not-allowed select-none items-center px-4 py-7 text-[14px] font-semibold text-gray-500 opacity-60 xl:px-5 xl:text-[15px]"
+                      title="You are already logged in"
+                      aria-disabled="true"
+                    >
+                      {menu.name}
+                    </span>
+                  ) : menu.submenu ? (
                     <>
+                      {/* ==================================================
+                          DROPDOWN MENU BUTTON
+                      ================================================== */}
+
                       <button
                         type="button"
-                        onClick={() => handleDesktopDropdown(menu.name)}
+                        onClick={() =>
+                          handleDesktopDropdown(menu.name)
+                        }
                         className="flex items-center gap-2 px-4 py-7 text-[14px] font-semibold text-gray-800 transition hover:bg-[#d6b300] xl:px-5 xl:text-[15px]"
                       >
                         {menu.name}
 
                         <FaChevronDown
                           className={`text-[9px] transition-transform ${
-                            desktopDropdown === menu.name ? "rotate-180" : ""
+                            desktopDropdown === menu.name
+                              ? "rotate-180"
+                              : ""
                           }`}
                         />
                       </button>
 
-                      {/* DESKTOP DROPDOWN */}
+                      {/* ==================================================
+                          DROPDOWN
+                      ================================================== */}
 
                       {desktopDropdown === menu.name && (
                         <div className="absolute left-0 top-full z-50 min-w-[250px] overflow-hidden rounded-b-lg border border-gray-200 bg-white shadow-xl">
@@ -293,7 +290,9 @@ export default function Header() {
                       )}
                     </>
                   ) : (
-                    /* NORMAL MENU */
+                    /* ==================================================
+                       NORMAL MENU LINK
+                    ================================================== */
 
                     <Link
                       to={menu.path}
@@ -315,14 +314,15 @@ export default function Header() {
                   <Link
                     to="/login"
                     onClick={closeMenus}
-                    className="group mx-2 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#ab183d] to-[#d21f4f] px-5 py-3 text-sm font-bold text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:from-[#921532] hover:to-[#b91842] hover:shadow-lg active:translate-y-0"
+                    className="group mx-2 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#ab183d] to-[#d21f4f] px-5 py-3 text-sm font-bold text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:from-[#921532] hover:to-[#b91842] hover:shadow-lg"
                   >
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 transition-all duration-300 group-hover:bg-white/25">
-                      <FaUserCircle className="text-lg transition-transform duration-300 group-hover:scale-110" />
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15">
+                      <FaUserCircle className="text-lg" />
                     </span>
 
                     <span className="flex flex-col leading-tight">
                       <span>Login / Register</span>
+
                       <span className="text-[10px] font-medium text-white/75">
                         Access your account
                       </span>
@@ -338,11 +338,15 @@ export default function Header() {
               {isLoggedIn && (
                 <li
                   className="relative"
-                  onMouseLeave={() => setProfileMenu(false)}
+                  onMouseLeave={() =>
+                    setProfileMenu(false)
+                  }
                 >
                   <button
                     type="button"
-                    onClick={() => setProfileMenu(!profileMenu)}
+                    onClick={() =>
+                      setProfileMenu(!profileMenu)
+                    }
                     className="flex items-center gap-2 px-4 py-6 text-[15px] font-semibold text-gray-800 transition hover:bg-[#d6b300]"
                   >
                     <FaUserCircle className="text-lg" />
@@ -351,12 +355,16 @@ export default function Header() {
 
                     <FaChevronDown
                       className={`text-[9px] transition-transform ${
-                        profileMenu ? "rotate-180" : ""
+                        profileMenu
+                          ? "rotate-180"
+                          : ""
                       }`}
                     />
                   </button>
 
-                  {/* PROFILE DROPDOWN */}
+                  {/* ==================================================
+                      PROFILE DROPDOWN
+                  ================================================== */}
 
                   {profileMenu && (
                     <div className="absolute right-0 top-full z-50 w-64 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl">
@@ -380,7 +388,10 @@ export default function Header() {
                         onClick={closeMenus}
                         className="flex items-center gap-3 border-b border-gray-100 px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
                       >
-                        <span className="text-[#ab183d]">🎓</span>
+                        <span className="text-[#ab183d]">
+                          🎓
+                        </span>
+
                         View Documents
                       </Link>
 
@@ -391,9 +402,24 @@ export default function Header() {
                         onClick={closeMenus}
                         className="flex items-center justify-between border-b border-gray-100 px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
                       >
-                        <span>📄 Download / Print Application</span>
+                        <span>
+                          📄 Download / Print Application
+                        </span>
 
                         <span>→</span>
+                      </Link>
+
+                      {/* Payment Receipt */}
+
+                      <Link
+                        to="/payment-receipt"
+                        state={{ userId }}
+                        onClick={closeMenus}
+                        className="flex items-center gap-3 border-b border-gray-100 px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
+                      >
+                        <FaReceipt className="text-[#ab183d]" />
+
+                        Payment Receipt
                       </Link>
 
                       {/* Logout */}
@@ -404,6 +430,7 @@ export default function Header() {
                         className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50"
                       >
                         <FaSignOutAlt />
+
                         Logout
                       </button>
                     </div>
@@ -438,35 +465,54 @@ export default function Header() {
 
       {mobileMenu && (
         <div className="max-h-[calc(100vh-80px)] overflow-y-auto bg-[#f7d200] shadow-xl lg:hidden">
-          {/* ==================================================
-              MOBILE MAIN MENU
-          ================================================== */}
-
           {menus.map((menu) => (
-            <div key={menu.name} className="border-b border-yellow-600">
-              {menu.submenu ? (
+            <div
+              key={menu.name}
+              className="border-b border-yellow-600"
+            >
+              {/* ==================================================
+                  APPLY - DISABLED WHEN LOGGED IN
+              ================================================== */}
+
+              {menu.name === "Apply" && isLoggedIn ? (
+                <span
+                  className="flex w-full cursor-not-allowed select-none items-center justify-between px-5 py-4 font-semibold text-gray-500 opacity-60"
+                  title="You are already logged in"
+                  aria-disabled="true"
+                >
+                  <span>{menu.name}</span>
+                </span>
+              ) : menu.submenu ? (
                 <>
-                  {/* Parent */}
+                  {/* ==================================================
+                      MOBILE DROPDOWN BUTTON
+                  ================================================== */}
 
                   <button
                     type="button"
-                    onClick={() => handleMobileDropdown(menu.name)}
+                    onClick={() =>
+                      handleMobileDropdown(menu.name)
+                    }
                     className="flex w-full items-center justify-between px-5 py-4 text-left font-semibold text-gray-800 transition hover:bg-[#d6b300]"
                   >
                     <span>{menu.name}</span>
 
                     <FaChevronDown
                       className={`transition-transform ${
-                        mobileDropdown === menu.name ? "rotate-180" : ""
+                        mobileDropdown === menu.name
+                          ? "rotate-180"
+                          : ""
                       }`}
                     />
                   </button>
 
-                  {/* Submenu */}
+                  {/* ==================================================
+                      MOBILE SUBMENU
+                  ================================================== */}
 
                   {mobileDropdown === menu.name && (
                     <div className="bg-yellow-100">
-                      {/* Optional Parent Page */}
+                      {/* Overview */}
 
                       <Link
                         to={menu.path}
@@ -475,6 +521,8 @@ export default function Header() {
                       >
                         Overview
                       </Link>
+
+                      {/* Submenu Items */}
 
                       {menu.submenu.map((subItem) => (
                         <Link
@@ -490,7 +538,9 @@ export default function Header() {
                   )}
                 </>
               ) : (
-                /* Normal mobile menu */
+                /* ==================================================
+                   NORMAL MOBILE LINK
+                ================================================== */
 
                 <Link
                   to={menu.path}
@@ -504,7 +554,7 @@ export default function Header() {
           ))}
 
           {/* ==================================================
-              MOBILE LOGIN / REGISTER
+              MOBILE LOGIN
           ================================================== */}
 
           {!isLoggedIn && (
@@ -512,14 +562,17 @@ export default function Header() {
               <Link
                 to="/login"
                 onClick={closeMenus}
-                className="group mx-3 my-2 flex items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-[#ab183d] to-[#d21f4f] px-5 py-3.5 font-bold text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98]"
+                className="group mx-3 my-2 flex items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-[#ab183d] to-[#d21f4f] px-5 py-3.5 font-bold text-white shadow-md"
               >
                 <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15">
-                  <FaUserCircle className="text-xl transition-transform duration-300 group-hover:scale-110" />
+                  <FaUserCircle className="text-xl" />
                 </span>
 
                 <span className="flex flex-col text-left leading-tight">
-                  <span className="text-sm">Login / Register</span>
+                  <span className="text-sm">
+                    Login / Register
+                  </span>
+
                   <span className="text-[10px] font-medium text-white/75">
                     Access your account
                   </span>
@@ -534,11 +587,11 @@ export default function Header() {
 
           {isLoggedIn && (
             <div className="border-t-2 border-yellow-700">
-              {/* Profile Header */}
-
               <button
                 type="button"
-                onClick={() => setProfileMenu(!profileMenu)}
+                onClick={() =>
+                  setProfileMenu(!profileMenu)
+                }
                 className="flex w-full items-center justify-between px-5 py-4 font-semibold text-gray-800 transition hover:bg-[#d6b300]"
               >
                 <span className="flex items-center gap-2">
@@ -548,12 +601,16 @@ export default function Header() {
 
                 <FaChevronDown
                   className={`transition-transform ${
-                    profileMenu ? "rotate-180" : ""
+                    profileMenu
+                      ? "rotate-180"
+                      : ""
                   }`}
                 />
               </button>
 
-              {/* Profile Items */}
+              {/* ==================================================
+                  MOBILE PROFILE DROPDOWN
+              ================================================== */}
 
               {profileMenu && (
                 <div className="bg-yellow-100">
@@ -566,6 +623,7 @@ export default function Header() {
                     className="flex items-center gap-3 border-t border-yellow-300 px-8 py-3 text-sm font-semibold text-gray-700 transition hover:bg-yellow-200"
                   >
                     <FaUserCircle className="text-[#ab183d]" />
+
                     My Profile
                   </Link>
 
@@ -577,7 +635,10 @@ export default function Header() {
                     onClick={closeMenus}
                     className="flex items-center gap-3 border-t border-yellow-300 px-8 py-3 text-sm font-semibold text-gray-700 transition hover:bg-yellow-200"
                   >
-                    <span className="text-[#ab183d]">🎓</span>
+                    <span className="text-[#ab183d]">
+                      🎓
+                    </span>
+
                     View Documents
                   </Link>
 
@@ -588,9 +649,24 @@ export default function Header() {
                     onClick={closeMenus}
                     className="flex items-center justify-between border-t border-yellow-300 px-8 py-3 text-sm font-semibold text-gray-700 transition hover:bg-yellow-200"
                   >
-                    <span>📄 Download / Print Application</span>
+                    <span>
+                      📄 Download / Print Application
+                    </span>
 
                     <span>→</span>
+                  </Link>
+
+                  {/* Payment Receipt */}
+
+                  <Link
+                    to="/payment-receipt"
+                    state={{ userId }}
+                    onClick={closeMenus}
+                    className="flex items-center gap-3 border-t border-yellow-300 px-8 py-3 text-sm font-semibold text-gray-700 transition hover:bg-yellow-200"
+                  >
+                    <FaReceipt className="text-[#ab183d]" />
+
+                    Payment Receipt
                   </Link>
 
                   {/* Logout */}
@@ -601,6 +677,7 @@ export default function Header() {
                     className="flex w-full items-center gap-2 border-t border-yellow-300 px-8 py-3 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50"
                   >
                     <FaSignOutAlt />
+
                     Logout
                   </button>
                 </div>

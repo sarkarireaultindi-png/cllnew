@@ -14,10 +14,14 @@ import UserProfile from "./components/Afterloginform";
 import QualificationDetails from "./components/QualificationDetails";
 import DocumentsUpload from "./components/DocumentsUpload";
 import FeesDetails from "./components/FeeDetails";
+
+import PaymentReceipt from "./components/PaymentReceipt";
 import Profile from "./components/Profile";
 import DownloadApplication from "./components/DownloadApplication";
 
 import About from "./components/content/History";
+
+import RefundPolicy from "./components/RefundPolicy";
 import Ourvision from "./components/content/visionMission";
 import Iso from "./components/content/Iso";
 
@@ -45,10 +49,46 @@ import Cclshine from "./components/news/cclshine"
 import Cclcomplete from "./components/news/cclcomplete"
 import Cclconducts from "./components/news/cclconducts"
 import Navchetna from "./components/news/ccllaunch"
+
+
+import PaymentSuccess from "./components/PaymentSuccess"
+
+import Adminlogin from "./components/admin/Login"
+import AdminDashboard from "./components/admin/Dashboard"
+import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
+import AdminHeader from "./components/admin/Header";
+import AdminHome from "./components/admin/Home";
+import AdminUsers from "./components/admin/AdminUsers"
+import AdminUserDetails from "./components/admin/AdminUserDetails"
+
 function App() {
   return (
     <Routes>
 
+
+<Route
+  path="/admin"
+  element={
+    <AdminProtectedRoute>
+      <AdminHome />
+    </AdminProtectedRoute>
+  }
+>
+   <Route
+    path="users/:userId"
+    element={<AdminUserDetails />}
+  />
+  <Route
+    path="dashboard"
+    element={<AdminDashboard />}
+  />
+    <Route
+    path="users"
+    element={<AdminUsers />}
+  />
+</Route>
+
+<Route path="/admin/login" element={<Adminlogin />} />
 
 <Route
         path="/news/navchetna-campaign"
@@ -297,6 +337,17 @@ function App() {
           </>
         }
       />
+       <Route
+        path="/refund-policy"
+        element={
+          <>
+            <Header2 />
+            <RefundPolicy />
+            <Footer />
+            <FooterBottom />
+          </>
+        }
+      />
       <Route
         path="/about-us/history"
         element={
@@ -343,6 +394,17 @@ function App() {
           </>
         }
       />
+         <Route
+        path="/payment-success"
+        element={
+          <>
+            <Header2 />
+            <PaymentSuccess />
+            <Footer />
+            <FooterBottom />
+          </>
+        }
+      />
       <Route
         path="/fee-details"
         element={
@@ -352,6 +414,16 @@ function App() {
           </>
         }
       />
+<Route
+        path="/payment-receipt"
+        element={
+          <>
+            <Header2 />
+            <PaymentReceipt />
+          </>
+        }
+      />
+      
 
       <Route
         path="/qualification-details"
@@ -383,6 +455,7 @@ function App() {
           </>
         }
       />
+    
 
       <Route
         path="/login"

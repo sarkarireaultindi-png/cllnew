@@ -8,8 +8,8 @@ export default function FooterTop() {
 
   const quickLinks = [
     {
-      title: "Utkarsh Magazine",
-      url: "#",
+      title: "Refund Policy",
+      url: "refund-policy",
     },
     {
       title: "CCL OBS",
@@ -175,7 +175,7 @@ export default function FooterTop() {
                   </strong>
 
                   <p>
-                    18003456501
+                    18003455610
                   </p>
 
 
@@ -184,7 +184,7 @@ export default function FooterTop() {
                   </strong>
 
                   <p>
-                    7250141999
+                    7250141001
                   </p>
 
                 </div>

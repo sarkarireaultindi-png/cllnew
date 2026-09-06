@@ -13,6 +13,8 @@ import qualificationDetailsRoutes from "./routes/qualificationDetails.js";
 import documentUploadRouter from "./routes/documentUpload.js";
 import feeDetailsRouter from "./routes/feeDetails.js";
 import authRouter from "./routes/auth.js";
+import adminRouter from "./routes/adminLogin.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
 
 dotenv.config();
 
@@ -44,6 +46,17 @@ app.use(express.json());
 // ======================================================
 // USER REGISTRATION
 // ======================================================
+// Payment Gateway ======================================================
+app.use(
+  "/api/payment",
+  paymentRoutes
+);
+
+
+app.use(
+  "/api/admin",
+  adminRouter
+);
 
 app.use(
   "/api/users",

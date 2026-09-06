@@ -2,7 +2,7 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { Resend } from "resend";
-
+import { adminAuth } from "../middleware/adminAuth.js";
 import User from "../models/UserDetails.js";
 
 const router = express.Router();
@@ -593,5 +593,35 @@ router.post("/register", async (req, res) => {
     });
   }
 });
+
+// ======================================================
+// ADMIN - FETCH REGISTERED USERS
+// ======================================================
+
+router.get("/admin/users", adminAuth, async (req, res) => {
+  try {
+    const users = await User.find({})
+      .select(
+        "-password "
+      )
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      count: users.length,
+      users,
+    });
+
+  } catch (error) {
+    console.error("❌ Fetch registered users error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch registered users.",
+    });
+  }
+});
+
+
 
 export default router;
