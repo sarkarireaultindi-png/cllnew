@@ -621,6 +621,101 @@ router.get("/admin/users", adminAuth, async (req, res) => {
     });
   }
 });
+router.get("/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required.",
+      });
+    }
+
+    const user = await User.findById(userId).select(
+      "registrationNumber name mobile email"
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    console.error("USER PROFILE ERROR:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to fetch user details.",
+      error: error.message,
+    });
+  }
+});
+
+// ======================================================
+// APPLICANT - FETCH USER PROFILE
+// ======================================================
+
+router.get("/profile/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // --------------------------------------------------
+    // Validate User ID
+    // --------------------------------------------------
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required.",
+      });
+    }
+
+    // --------------------------------------------------
+    // Fetch User
+    // --------------------------------------------------
+    // Password is explicitly excluded.
+    // --------------------------------------------------
+
+    const user = await User.findById(userId).select(
+      "-password"
+    );
+
+    // --------------------------------------------------
+    // User Not Found
+    // --------------------------------------------------
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found.",
+      });
+    }
+
+    // --------------------------------------------------
+    // Return User
+    // --------------------------------------------------
+
+    return res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    console.error("❌ USER PROFILE ERROR:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to fetch user details.",
+    });
+  }
+});
+
 
 
 
